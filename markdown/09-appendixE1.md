@@ -868,7 +868,7 @@ SSR校正与广播星历和时钟结合使用的情况是在处理选项“Satel
 
 ## E.5 对流层与电离层模型
 
-**1. 对流层模型**
+### 5.1. 对流层模型
 
 标准大气可以表示为：
 
@@ -894,11 +894,11 @@ T_r^s = \frac{0.002277}{\cos z} \left\{ p + \left(\frac{1255}{T} + 0.05\right) e
 
 标准大气和Saastamoinen模型在处理选项“Troposphere Correction”设置为“Saastamoinen”时适用，其中大地高程由椭球高程近似，且相对湿度固定为70%。
 
-**2. SBAS 对流层模型**
+### 5.2 SBAS 对流层模型
 
 如果处理选项“对流层校正”设置为“SBAS”，则应用 SBAS 接收器规范中定义的 SBAS 对流层模型。该模型常被称为“MOPS 模型”。参考 [8] A.4.2.4 获取详情。
 
-**3. 精确对流层模型**
+### 5.3 精确对流层模型
 
 如果处理选项“对流层校正”设置为“估计 ZTD”或“估计 ZTD+Grad”，则应用更精确的对流层模型，并使用严格的映射函数如下：
 
@@ -919,7 +919,7 @@ $m_W(El)$ : 湿映射函数
 
 在 RTKLIB 中，对流层天顶静水延迟由 Saastamoinen 模型（E.5.4）给出，假设天顶角 $z = 0$ 且相对湿度 $P_{rel} = 0$。对于映射函数，RTKLIB 默认使用 Niell 映射函数（Niell mapping function）[70]。天顶总延迟 $Z_{T,r}$ 和梯度参数 $G_{N,r}$、$G_{E,r}$（在“估计 ZTD+Grad”情况下）作为未知参数在参数估计过程中被估算。对于映射函数，RTKLIB 自版本 2.4.2 起可以通过设置编译器选项 -DIERS_MODEL 使用 GMF [71]。
 
-**4. 广播电离层模型**
+### 5.4 广播电离层模型
 
 对于单频GNSS用户的电离层校正，GPS和QZSS导航数据包括以下广播电离层参数。
 
@@ -968,11 +968,11 @@ F \times (5 \times 10^{-9} + \sum_{n=1}^{4} \alpha_n \varphi_m^n \times (1 - \fr
 
 如果处理选项 "Ionosphere Correction" 设置为 "Broadcast" 或 "QZSS Broadcast"。
 
-**5. SBAS 电离层模型**
+### 5.5 SBAS 电离层模型
 
 SBAS 对电离层延迟的校正由消息类型 18（电离层网格点掩模）和消息类型 26（电离层延迟校正）提供。如果处理选项 "Ionosphere Correction" 设置为 "SBAS" 并且这些 SBAS 消息在输入文件中提供，RTKLIB 使用 SBAS 电离层校正。关于模型的算法和 IGPs（电离层网格点）的定义，请参阅 SBAS 接收器规范 [8] 的 A.4.4.9 和 A.4.4.10。
 
-**6. 单层模型**
+### 5.6 单层模型
 
 电离层通常被建模为图 E.5-1 所示的简单单层模型。单层模型也被称为薄壳模型。
 
@@ -1027,7 +1027,7 @@ TEC(t,\phi_{IPP},\lambda_{IPP}) = \frac{(t-t_i)TEC(t_i,\phi_{IPP},\lambda_{IPP}+
 
 其中，$t_i$ 和 $t_{i+1}$ ($t_i \leq t < t_{i+1}$ ) 是提供的TEC数据的时间，$\omega = 2\pi/86400$ 是太阳相对于地球的旋转速度。如果处理选项 "Ionosphere Correction" 设置为 "IONEX TEC" 并且IONEX数据仅在后处理模式下作为输入文件提供，则应用单层模型和IONEX数据的校正。
 
-**7. 无电离层影响的LC（线性组合）**
+### 5.7 无电离层组合（线性组合）
 
 为了消除GNSS信号测量中的电离层影响，通常在GNSS数据处理中利用双频测量的LC（线性组合）。$L_i$和$L_j$伪距和相位差的无电离层LC表示为：
 
@@ -1049,4 +1049,4 @@ $\begin{equation}
 C_j = \frac{-{f_j}^2}{{f_i}^2 - {f_j}^2} \tag{E.5.24}
 \end{equation}$
 
-其中$f_i$和$f_j$是$L_i$和$L_j$测量的频率（Hz）。当前版本的RTKLIB总是对GPS、GLONASS和QZSS使用$L_1$和$L_2$，对Galileo使用$L_1$和$L_5$进行无电离层影响的LC。如果在单一或PPP模式下将处理选项 "Ionosphere Correction" 设置为 "Iono-Free LC"，则无电离层影响的LC用于基本测量以消除电离层项。请注意，无电离层影响的LC模型不适用于Kinematic、Static或Moving-base模式。详情请参阅E.7(6)。
+其中$f_i$和$f_j$是$L_i$和$L_j$测量的频率（Hz）。当前版本的RTKLIB总是对GPS、GLONASS和QZSS使用$L_1$和$L_2$，对Galileo使用$L_1$和$L_5$进行无电离层影响的LC。如果在单一或PPP模式下将处理选项 "Ionosphere Correction" 设置为 "Iono-Free LC"，则无电离层影响的LC用于基本测量以消除电离层项。请注意，无电离层影响的LC模型不适用于Kinematic、Static或Moving-base模式。详情请参阅E.7(7.1)。

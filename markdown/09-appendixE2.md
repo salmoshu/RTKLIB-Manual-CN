@@ -8,149 +8,147 @@ sidebarDepth: 2
 
 ## E.6 单点定位
 
-RTKLIB采用迭代加权最小二乘法（LSE）用于“Single”（单点定位）模式，无论是否使用SBAS校正。
+RTKLIB采用迭代加权最小二乘法（LSE）用于“Single”（单点定位）模式（无论是否包含SBAS校正）。
 
-**1. 线性LSE**
+### 6.1. 线性最小二乘
 
-假设给定测量向量$y$，它可以被建模为未知参数向量$x$和一个随机测量误差向量$v$的以下线性方程：
+假设给定测量向量$y$，它可以被建模为一个包含未知参数向量$x$和一个随机测量误差向量$v$的线性方程：
 
 $\begin{equation}
-y = Hx + v \tag{E.6.1}
+\mathbf{y} = \mathbf{Hx} + \mathbf{v} \tag{E.6.1}
 \end{equation}$
 
 最小二乘代价函数$J_{LS}$定义为测量误差的平方和：
 
 $\begin{equation}
-J_{LS} = v_1^2 + v_2^2 + \ldots + v_m^2 = v^Tv \tag{E.6.2}
+J_{LS} = v_1^2 + v_2^2 + \ldots + v_m^2 = \mathbf{v}^T\mathbf{v} \tag{E.6.2}
 \end{equation}$
 
-通过使用(E.6.1)和(E.6.2)，代价函数可以重写为：
+通过使用 (E.6.1) 和 (E.6.2) ，代价函数可以重写为（计算时注意代价值为标量，而标量的转置为自身）：
 
 $\begin{align}
 J_{LS} 
-&= (y - Hx)^T(y - Hx) \\
-&= y^Ty - y^THx - x^TH^Ty + x^TH^THx \tag{E.6.3}
+&= (\mathbf{y} - \mathbf{Hx})^T(\mathbf{y} - \mathbf{Hx}) \\
+&= \mathbf{y}^T\mathbf{y} - \mathbf{y}^T\mathbf{Hx} - \mathbf{x}^T\mathbf{H}^T\mathbf{y} + \mathbf{x}^T\mathbf{H}^T\mathbf{Hx} \\
+&= \mathbf{y}^T\mathbf{y} - 2\mathbf{y}^T\mathbf{Hx} + \mathbf{x}^T\mathbf{H}^T\mathbf{Hx} \tag{E.6.3}
 \end{align}$
 
 为了最小化代价函数，$J_{LS}$的梯度应该为零。然后
 
 $\begin{align}
-\frac{\partial J_{LS}}{\partial x} 
-&= 0^T - y^TH - (H^Ty)^T + (H^THx)^T + x^TH^TH \\
-&= -2y^TH + 2x^TH^TH = 0 \tag{E.6.4}
+\frac{\partial J_{LS}}{\partial \mathbf{x}} 
+&= -2\mathbf{y}^T\mathbf{H} + 2\mathbf{H}^T\mathbf{H}\mathbf{x} = \mathbf{0} \tag{E.6.4}
 \end{align}$
 
-这给出了所谓的“正规方程”：
+这就是最小二乘法的“正规方程”（Normal Equation）：
 
 $\begin{equation}
-H^THx = H^Ty \tag{E.6.5}
+\mathbf{H}^T\mathbf{Hx} = \mathbf{H}^T\mathbf{y} \tag{E.6.5}
 \end{equation}$
 
 为了解正规方程，我们可以通过最小二乘法得到估计的未知参数向量$\hat{x}$：
 
 $\begin{equation}
-\hat{x} = (H^TH)^{-1}H^Ty \tag{E.6.6}
+\hat{\mathbf{x}} = (\mathbf{H}^T\mathbf{H})^{-1}\mathbf{H}^T\mathbf{y} \tag{E.6.6}
 \end{equation}$
 
-如果给定了每个测量的权重，可以使用权重矩阵$W$重写代价函数(E.6.3)。
+如果给定了每个测量的权重，可以使用权重矩阵$\mathbf{W}$重写代价函数 (E.6.3) 。
 
 $\begin{equation}
-J_{WLS} = v^T W v \tag{E.6.7}
+J_{WLS} = \mathbf{v}^T \mathbf{W v} \tag{E.6.7}
 \end{equation}$
 
-为了最小化代价函数$J_{WLS}$，我们可以通过加权最小二乘法（WLS）以类似简单最小二乘法的方式获得估计的未知参数向量$\hat{x}$：
+为了最小化代价函数$J_{WLS}$，我们可以通过加权最小二乘法（WLS）以类似最小二乘法原本的方式获得估计的未知参数向量$\hat{\mathbf{x}}$：
 
 $\begin{equation}
-\hat{x} = (H^T W H)^{-1} H^T W y \tag{E.6.8}
+\hat{\mathbf{x}} = (\mathbf{H}^T \mathbf{W H})^{-1} \mathbf{H}^T \mathbf{W y} \tag{E.6.8}
 \end{equation}$
 
-加权最小二乘法（WLS）的权重矩阵$W$通常定义为：
+加权最小二乘法（WLS）的权重矩阵$\mathbf{W}$通常定义为：
 
 $\begin{equation}
-W = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2})
+\mathbf{W} = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2})
 \end{equation}$
 
 其中$\sigma_i$是第$i$个测量误差的先验标准差。
 
-**2. 非线性最小二乘的高斯-牛顿迭代**
+### 6.2 高斯-牛顿迭代
 
 如果测量值不是以线性模型给出的，测量方程可以由一个通用的非线性向量函数表示为：
 
 $\begin{equation}
-y = h(x) + v \tag{E.6.9}
+\mathbf{y} = \mathbf{h(x)} + \mathbf{v} \tag{E.6.9}
 \end{equation}$
 
-其中$h(x)$是参数向量$x$的测量向量函数。该方程可以通过在初始参数向量$x_0$周围使用泰勒级数展开来扩展：
+其中$\mathbf{h(x)}$是参数向量$\mathbf{x}$的测量向量函数。该方程可以通过在初始参数向量$\mathbf{x_0}$处使用泰勒（级数）展开：
 
 $\begin{equation}
-h(x) = h(x_0) + H(x - x_0) + \ldots \tag{E.6.10}
+\mathbf{h(x)} = \mathbf{h(x_0)} + \mathbf{H(x - x_0)} + \ldots \tag{E.6.10}
 \end{equation}$
 
 其中$H$是$h(x)$关于$x$在$x = x_0$处的偏导数矩阵：
 
 $\begin{equation}
-H = \left.\frac{\partial h(x)}{\partial x}\right|_{x=x_0} \tag{E.6.11}
+\mathbf{H} = \left.\frac{\partial \mathbf{h(x)}}{\partial \mathbf{x}}\right|_\mathbf{{x=x_0}} \tag{E.6.11}
 \end{equation}$
 
-假设初始参数足够接近真实值，并且可以忽略泰勒级数的第二项和后续项。我们可以将(E.6.9)近似为：
-
-假设初始参数足够接近真实值，并且可以忽略泰勒级数的第二项和后续项。我们可以将(E.6.9)近似为：
+假设初始参数足够接近真实值，并且忽略泰勒级数的高阶项（第二项及其后续项）。我们可以将 (E.6.9) 近似为：
 
 $\begin{equation}
-y \approx h(x_0) + H(x - x_0) + v \tag{E.6.12}
+\mathbf{y} \approx \mathbf{h(x_0)} + \mathbf{H(x - x_0)} + \mathbf{v} \tag{E.6.12}
 \end{equation}$
 
-然后我们可以得到以下线性方程。
+然后可以得到以下线性方程：
 
 $\begin{equation}
-y - h(x_0) = H(x - x_0) + v \tag{E.6.13}
+\mathbf{y} - \mathbf{h(x_0)} = \mathbf{H(x - x_0)} + \mathbf{v} \tag{E.6.13}
 \end{equation}$
 
-通过将线性加权最小二乘法（E.6.8）应用于(E.6.13)，我们可以得到非线性加权最小二乘法的正规方程：
+通过将线性加权最小二乘法 (E.6.8) 应用于 (E.6.13) ，我们可以得到非线性加权最小二乘法的正规方程：
 
 $\begin{equation}
-H^T W H (\hat{x} - x_0) = H^T W (y - h(x_0)) \tag{E.6.14}
+\mathbf{H}^T \mathbf{W H} (\hat{\mathbf{x}} - \mathbf{x_0}) = \mathbf{H}^T \mathbf{W} (\mathbf{y} - \mathbf{h(x_0)}) \tag{E.6.14}
 \end{equation}$
 
 因此，我们可以通过以下方式获得估计的未知参数向量$\hat{x}$：
 
 $\begin{equation}
-\hat{x} = x_0 + (H^T W H)^{-1} H^T W (y - h(x_0)) \tag{E.6.15}
+\hat{\mathbf{x}} = \mathbf{x_0} + (\mathbf{H}^T \mathbf{W H})^{-1} \mathbf{H}^T \mathbf{W (y - h(x_0)}) \tag{E.6.15}
 \end{equation}$
 
-如果初始参数$x_0$不够接近真实值，我们可以迭代改进估计参数如下：
+如果初始参数$\mathbf{x_0}$不够接近真实值，我们可以迭代改进估计参数如下：
 
 $\begin{equation}
-\hat{x}_0 = x_0 \tag{E.6.16}
+\hat{\mathbf{x}}_0 = \mathbf{x_0} \tag{E.6.16}
 \end{equation}$
 
 $\begin{equation}
-\hat{x}_{i+1} = \hat{x}_i + (H^T W H)^{-1} H^T W (y - h(\hat{x}_i)) \tag{E.6.17}
+\hat{\mathbf{x}}_{i+1} = \hat{\mathbf{x}}_i + (\mathbf{H}^T \mathbf{W H})^{-1} \mathbf{H}^T \mathbf{W} (\mathbf{y} - \mathbf{h}(\hat{\mathbf{x}}_i)) \tag{E.6.17}
 \end{equation}$
 
 如果迭代收敛，我们可以得到最终的估计参数为：
 
 $\begin{equation}
-\hat{x} = \lim_{i \to \infty} \hat{x}_i \tag{E.6.18}
+\hat{\mathbf{x}} = \lim_{i \to \infty} \hat{\mathbf{x}}_i \tag{E.6.18}
 \end{equation}$
 
-迭代最小二乘法通常被称为高斯-牛顿方法。请注意，对于具有较大非线性的病态测量方程，简单的高斯-牛顿方法并不总是能够收敛。在这些情况下，我们应该采用另一种策略来处理这种非线性最小二乘问题。对于非线性最小二乘法，最流行的方法是非线性最小二乘的LM（Levenberg-Marquardt）方法。
+迭代最小二乘法通常被称为高斯-牛顿法。请注意，对于具有较大非线性的病态（ill-conditioned）测量方程，简单的高斯-牛顿方法并不总是能够收敛。在这种情况下，我们应该采用另一种策略来处理这种非线性最小二乘问题。对于非线性最小二乘法，最流行的方法是非线性最小二乘的LM（Levenberg-Marquardt）方法。
 
-**3. 接收机位置和时钟偏差的估计**
+### 6.3. 接收机位置和钟差估计
 
-对于“Single”模式作为“Positioning Mode”，应用以下单点定位过程，通过逐历元的方式获得最终解。对于一个历元时间，未知参数向量$x$定义为：
+如果定位模式 (Positioning Mode) 设置为 “Single” ，将会通过以下单点定位过程，通过逐历元的方式获得最终解。对于一个历元时间，未知参数向量 $\mathbf{x}$ 定义为：
 
 $\begin{equation}
-x = (r_r^T, cdt_r)^T \tag{E.6.19}
+\mathbf{x} = (\mathbf{r}_r^T, cdt_r)^T \tag{E.6.19}
 \end{equation}$
 
-伪距测量向量$y$可以表示为：
+伪距测量向量 $\mathbf{y}$ 可以表示为：
 
 $\begin{equation}
-y = (P_r^1, P_r^2, P_r^3, \ldots, P_r^m)^T \tag{E.6.20}
+\mathbf{y} = (P_r^1, P_r^2, P_r^3, \ldots, P_r^m)^T \tag{E.6.20}
 \end{equation}$
 
-其中$P_r^s$是伪距测量。如果处理选项"Ionosphere Correction"设置为"Iono-Free LC"，则使用附录E.5 (7)中定义的无电离层影响的LC（线性组合）伪距。在其他情况下，仅使用$L_1$伪距。
+其中 $P_r^s$ 是伪距测量。如果配置选项"Ionosphere Correction"设置为"Iono-Free LC"，则使用附录 [E.5(5.7)](/algorithm/RTKLIB手册/09-appendixE1#_5-7-无电离层组合-线性组合) 中定义的无电离层组合（线性组合）伪距。其他情况下，则仅使用 $L_1$ 伪距。
 
 ![ Satellite Geometry for Single Point Positioning](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250220-204634.jpg)
 <p style="text-align: center;">图E.6-1 单点定位的卫星几何结构</p> 
@@ -158,35 +156,35 @@ y = (P_r^1, P_r^2, P_r^3, \ldots, P_r^m)^T \tag{E.6.20}
 单点定位的测量方程及其偏导数矩阵构成如下：
 
 $\begin{equation}
-\delta\mathbf{O} = 
+\mathbf{h(x)} = 
 \begin{pmatrix} 
 \rho_r^1 + cdt_r - cdT^1 + I_r^1 + T_r^1 \\ 
 \rho_r^2 + cdt_r - cdT^2 + I_r^2 + T_r^2 \\ 
 \rho_r^3 + cdt_r - cdT^3 + I_r^3 + T_r^3 \\ 
 \vdots \\
 \rho_r^m + cdt_r - cdT^m + I_r^m + T_r^m 
-\end{pmatrix} H = 
+\end{pmatrix} \mathbf{H} = 
 \begin{pmatrix} 
--e_r^{1^T} & 1 \\ 
--e_r^{2^T} & 1 \\ 
--e_r^{3^T} & 1 \\ 
+-\mathbf{e}_r^{1^T} & 1 \\ 
+-\mathbf{e}_r^{2^T} & 1 \\ 
+-\mathbf{e}_r^{3^T} & 1 \\ 
 \vdots & \vdots \\ 
--e_r^{m^T} & 1
+-\mathbf{e}_r^{m^T} & 1
 \end{pmatrix} \tag{E.4.45}
 \end{equation}$
 
-其中几何距离$\rho_r^s$和视线（LOS）向量$e_r^s$由E.3 (4)和E.3 (5)给出，结合卫星和接收机的位置。卫星位置$r^s$和时钟偏差$dT^s$也根据处理选项“Satellite Ephemeris/Clock”从E.4中描述的GNSS卫星星历和时钟导出。
+其中几何距离 $\rho_r^s$ 和视距（LOS）向量 $\mathbf{e}_r^s$ 由 E.3 (3.4) 和 E.3 (3.5) 给出，结合卫星和接收机的位置。卫星位置 $\mathbf{r}^s$ 和时钟偏差 $dT^s$ 则根据配置选项“Satellite Ephemeris/Clock”从 E.4 中描述的GNSS卫星星历和时钟推导而来。
 
-为了求解测量方程以获得最终估计的接收机位置和接收机时钟偏差，RTKLIB采用迭代加权最小二乘法（LSE），如下所示：
+为了求解测量方程以获得接收机位置和接收机钟差，RTKLIB采用了迭代加权最小二乘法（LSE），如下所示：
 
 $\begin{equation}
-\hat{x}_{i+1} = \hat{x}_i + (H^T W H)^{-1} H^T W (y - h(\hat{x}_i)) \tag{E.6.22}
+\hat{\mathbf{x}}_{i+1} = \hat{\mathbf{x}}_i + (\mathbf{H}^T \mathbf{W H})^{-1} \mathbf{H}^T \mathbf{W} (\mathbf{y} - \mathbf{h}(\hat{\mathbf{x}}_i)) \tag{E.6.22}
 \end{equation}$
 
-对于迭代加权最小二乘法的初始参数向量$x_0$，在单点定位的第一个历元中仅使用全0。一旦获得解，该位置将用作下一个历元的初始接收机位置。对于权重矩阵$W$，RTKLIB使用以下公式：
+对于迭代加权最小二乘法的初始参数向量 $\mathbf{x}_0$ ，在单点定位的第一个历元中可以全部设置为0。一旦获得解，该位置将用于下一个历元接收机位置的迭代初值。对于权重矩阵 $\mathbf{W}$ ，RTKLIB使用以下公式：
 
 $\begin{equation}
-W = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2}) \tag{E.6.23}
+\mathbf{W} = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2}) \tag{E.6.23}
 \end{equation}$
 
 $\begin{equation}
@@ -197,22 +195,22 @@ $\begin{equation}
 
 $F^s$：卫星系统误差因子<br>
 （1: GPS, Galileo, QZSS和Beidou, 1.5: GLONASS, 3.0: SBAS）<br>
-$R_r$：码/载波相位误差比<br>
-$a_\sigma, b_\sigma$：载波相位误差因子$a$和$b$（米）<br>
-$\sigma_{eph}$：星历和时钟误差的标准差（米）<br>
-$\sigma_{ion}$：电离层校正模型误差的标准差（米）<br>
-$\sigma_{trop}$：对流层校正模型误差的标准差（米）<br>
-$\sigma_{bias}$：码偏差误差的标准差（米）
+$R_r$：码/载波相位误差比率<br>
+$a_\sigma, b_\sigma$：载波相位误差因子 $a$ 和 $b$（m）<br>
+$\sigma_{eph}$：星历和钟差标准差（m）<br>
+$\sigma_{ion}$：电离层校正模型误差标准差（m）<br>
+$\sigma_{trop}$：对流层校正模型误差标准差（m）<br>
+$\sigma_{bias}$：码偏差误差标准差（m）
 
-对于星历和时钟误差的标准差，RTKLIB中使用了URA（用户范围精度）或类似的指标。通过几次迭代，通常情况下解会收敛，并获得估计的接收机位置$\hat{r}_r$和接收机时钟偏差$\hat{d}t_r$。
+对于星历和钟差的标准差，RTKLIB中使用了URA（用户测距精度）或类似的指标。通过几次迭代，通常情况下解会收敛，并获得估计的接收机位置 $\hat{\mathbf{r}}_r$ 和接收机钟差 $\hat{d}t_r$ 。
 
 $\begin{equation}
-\hat{x} = \lim_{i \to \infty} \hat{x}_i = (\hat{r}_r^T, cdt_r)^T \tag{E.6.25}
+\hat{\mathbf{x}} = \lim_{i \to \infty} \hat{\mathbf{x}}_i = (\hat{\mathbf{r}}_r^T, cdt_r)^T \tag{E.6.25}
 \end{equation}$
 
-估计的接收机时钟偏差$\hat{d}t_r$没有明确输出到解文件中。相反，它被合并在解的时间标签中。这意味着解的时间标签指示的不是接收机的时间标签，而是GPST中测量到的真实信号接收时间。
+估计的接收机钟差 $\hat{d}t_r$ 没有明确输出到结果文件中。它被合并在定位解的时间标签中。这意味着定位解的时间标签表示的并不是接收机的时间标签，而是GPST中测量到的真实信号接收时间（包含钟差修正的观测时间）。
 
-**4. 接收机速度和时钟漂移的估计**
+### 6.4 接收机速度和钟漂估计
 
 如果给出了GNSS信号的多普勒频率测量值，可以按照以下过程估计接收机速度和时钟漂移。对于一个历元时间，速度估计的未知参数向量$x$定义为：
 
@@ -259,7 +257,7 @@ $\begin{equation}
 
 其中权重矩阵$W$设置为$I$（非加权最小二乘法）。
 
-**5. 解的验证和RAIM FDE**
+### 6.5 解的验证与RAIM FDE
 
 在(3)中描述的估计接收机位置可能由于未建模的测量误差而包含无效解。为了测试是否为有效解并拒绝无效解，RTKLIB在获得接收机位置估计后应用以下验证。如果验证失败，将发出警告信息拒绝该解。
 
