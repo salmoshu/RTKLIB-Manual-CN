@@ -74,7 +74,7 @@ $\begin{equation}
 
 ### 6.2 高斯-牛顿迭代
 
-如果测量值不是以线性模型给出的，测量方程可以由一个通用的非线性向量函数表示为：
+如果观测值不是以线性模型给出的，测量方程可以由一个通用的非线性向量函数表示为：
 
 $\begin{equation}
 \mathbf{y} = \mathbf{h(x)} + \mathbf{v} \tag{E.6.9}
@@ -173,7 +173,7 @@ $\begin{equation}
 \end{pmatrix} \tag{E.4.45}
 \end{equation}$
 
-其中几何距离 $\rho_r^s$ 和视距（LOS）向量 $\mathbf{e}_r^s$ 由 E.3 (3.4) 和 E.3 (3.5) 给出，结合卫星和接收机的位置。卫星位置 $\mathbf{r}^s$ 和时钟偏差 $dT^s$ 则根据配置选项“Satellite Ephemeris/Clock”从 E.4 中描述的GNSS卫星星历和时钟推导而来。
+其中几何距离 $\rho_r^s$ 和视距（LOS）向量 $\mathbf{e}_r^s$ 由 E.3 (3.4) 和 E.3 (3.5) 给出，结合卫星和接收机的位置。卫星位置 $\mathbf{r}^s$ 和钟差 $dT^s$ 则根据配置选项“Satellite Ephemeris/Clock”从 E.4 中描述的GNSS卫星星历和时钟推导而来。
 
 为了求解测量方程以获得接收机位置和接收机钟差，RTKLIB采用了迭代加权最小二乘法（LSE），如下所示：
 
@@ -212,61 +212,80 @@ $\begin{equation}
 
 ### 6.4 接收机速度和钟漂估计
 
-如果给出了GNSS信号的多普勒频率测量值，可以按照以下过程估计接收机速度和时钟漂移。对于一个历元时间，速度估计的未知参数向量$x$定义为：
+如果给出了多普勒频率观测值，可以按照以下过程估计接收机速度和钟漂。对于一个历元时间，速度估计的未知参数向量 $\mathbf{x}$ 定义为：
 
 $\begin{equation}
-x = (v_r^T, cdt_r)^T \tag{E.6.26}
+\mathbf{x} = (\mathbf{v}_r^T, cd\dot{t}_r)^T \tag{E.6.26}
 \end{equation}$
 
-其中$v_r$和$dt_r$分别是接收机速度在ECEF（地心地固坐标系）中的速度（米/秒）和接收机时钟漂移（秒/秒）。相对应的速率测量向量$y$可以表示为：
+其中 $\mathbf{v}_r$ 和 $d\dot{t}_r$ 分别是接收机在ECEF（地心地固）坐标系中的速度（m/s）和接收机钟漂（s/s）。相应的速率测量向量 $\mathbf{y}$ 可以表示为：
 
 $\begin{equation}
-y = (-\lambda_i D_{r,i}^1, -\lambda_i D_{r,i}^2, -\lambda_i D_{r,i}^3, \ldots, -\lambda_i D_{r,i}^m)^T \tag{E.6.27}
+\mathbf{y} = (-\lambda_i D_{r,i}^1, -\lambda_i D_{r,i}^2, -\lambda_i D_{r,i}^3, \ldots, -\lambda_i D_{r,i}^m)^T \tag{E.6.27}
 \end{equation}$
 
-其中$D_{r,i}^s$是卫星$s$的$L_i$多普勒频率测量值。RTKLIB总是使用$L_1$多普勒频率测量值。这些测量方程及其偏导数矩阵构成如下：
+其中 $D_{r,i}^s$ 是卫星 $s$ 的 $L_i$ 多普勒频率观测值。
+
+::: info Q1：多普勒观测值的正负
+
+RINEX 中的多普勒观测值 $D^s$ 可以表示为：
 
 $\begin{equation}
-h(x) = \begin{pmatrix}
+D_r^s  = \frac{(\mathbf{v}_r - \mathbf{v}^s) \cdot \mathbf{e}_r^s}{\lambda} = - \frac{(\mathbf{v}^s - \mathbf{v}_r) \cdot \mathbf{e}_r^s}{\lambda} = - \frac{\dot{\mathbf{r}}}{\lambda}
+\end{equation}$
+
+根据多普勒效应的物理定义：
+
+- 当接收机和卫星靠近时， $\dot{\mathbf{r}} < 0$， $D_r^s > 0$ ，多普勒记录为正值。
+- 当接收机和卫星远离时， $\dot{\mathbf{r}} > 0$， $D_r^s < 0$ ，多普勒记录为负值。
+
+绝大部分接收机满足上述规律，可以通过查看观测文件中前后两个历元的伪距或载波相位是增加还是减小来判断多普勒的符号定义。
+
+:::
+
+RTKLIB总是使用 $L_1$ 频段的多普勒频率观测值。这些测量方程及其偏导数矩阵构成如下：
+
+$\begin{equation}
+\mathbf{h(x)} = \begin{pmatrix}
 r_r^1 + cd\dot{t}_r - cd\dot{T}^1 \\
 r_r^2 + cd\dot{t}_r - cd\dot{T}^2 \\
 r_r^3 + cd\dot{t}_r - cd\dot{T}^3 \\
 \vdots \\
 r_r^m + cd\dot{t}_r - cd\dot{T}^m
 \end{pmatrix} \quad
-H = \begin{pmatrix}
--e_r^{1^T} & 1 \\
--e_r^{2^T} & 1 \\
--e_r^{3^T} & 1 \\
+\mathbf{H} = \begin{pmatrix}
+-\mathbf{e}_r^{1^T} & 1 \\
+-\mathbf{e}_r^{2^T} & 1 \\
+-\mathbf{e}_r^{3^T} & 1 \\
 \vdots & \vdots \\
--e_r^{m^T} & 1
+-\mathbf{e}_r^{m^T} & 1
 \end{pmatrix} \tag{E.6.28}
 \end{equation}$
 
-这些方程中接收机和卫星之间的距离速率$r_r^s$从以下公式推导：
+这些方程中卫星相对于接收机的速度 $\mathbf{r}_r^s$ 从以下公式推导：
 
 $\begin{equation}
-r_r^s = e_r^{s^T} (v^s(t^s) - v_r) + \frac{\omega_e}{c} (v_y^s x_r + y^s v_{x,r} - v_x^s y_r - x^sv_{y,r}) \tag{E.6.29}
+\mathbf{r}_r^s = \mathbf{e}_r^{s^T} (\mathbf{v}^s(t^s) - \mathbf{v}_r) + \frac{\omega_e}{c} (v_y^s x_r + y^s v_{x,r} - v_x^s y_r - x^sv_{y,r}) \tag{E.6.29}
 \end{equation}$
 
-其中$v^s = (v_x^s, v_y^s, v_z^s)^T$和$v_r = (v_{x,r}, v_{y,r}, v_{z,r})^T$。通过使用类似于接收机位置估计的迭代最小二乘法，我们可以获得接收机速度和时钟漂移：
+其中 $\mathbf{v}^s = (v_x^s, v_y^s, v_z^s)^T$ ， $\mathbf{v}_r = (v_{x,r}, v_{y,r}, v_{z,r})^T$ 。通过使用与位置估计类似的迭代最小二乘法，我们可以获得接收机的速度和钟漂：
 
 $\begin{equation}
-\hat{x} = \lim_{i \to \infty} \hat{x}_i = (\dot{v}_r^T, c\hat{d}\dot{t}_r)^T \tag{E.6.30}
+\hat{\mathbf{x}} = \lim_{i \to \infty} \hat{\mathbf{x}}_i = (\dot{\mathbf{v}}_r^T, c\hat{d}\dot{t}_r)^T \tag{E.6.30}
 \end{equation}$
 
-其中权重矩阵$W$设置为$I$（非加权最小二乘法）。
+其中权重矩阵 $\mathbf{W}$ 设置为 $\mathbf{I}$ （非加权最小二乘法）。
 
 ### 6.5 解的验证与RAIM FDE
 
-在(3)中描述的估计接收机位置可能由于未建模的测量误差而包含无效解。为了测试是否为有效解并拒绝无效解，RTKLIB在获得接收机位置估计后应用以下验证。如果验证失败，将发出警告信息拒绝该解。
+6.3中描述的接收机位置估计可能由于未建模的测量误差而产生无效解。为了检验结果是否有效并防止无效解，RTKLIB在完成位置估计后可以采用以下验证方式。如果验证失败，将发出警告信息并拒绝该解。
 
 $\begin{equation}
-v_s = \frac{(p_i^s - (\hat{\rho}_i^s + c\hat{d}t_r - cdT^s + I_r^s + T_r^s)}{\sigma_s} \tag{E.6.31}
+v_s = \frac{p_r^s - (\hat{\rho}_i^s + c\hat{d}t_r - cdT^s + I_r^s + T_r^s)}{\sigma_s} \tag{E.6.31}
 \end{equation}$
 
 $\begin{equation}
-v = (v_1, v_2, v_3, \ldots, v_m)^T \tag{E.6.32}
+\mathbf{v} = (v_1, v_2, v_3, \ldots, v_m)^T \tag{E.6.32}
 \end{equation}$
 
 $\begin{equation}
@@ -277,62 +296,50 @@ $\begin{equation}
 GDOP < GDOP_{thres} \tag{E.6.34}
 \end{equation}$
 
-其中$n$是估计参数的数量，$m$是测量的数量。$\chi_a^2(n)$ 是自由度n和α=0.001（0.1%）的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$
-​
-可以设置为处理选项“Reject Threshold of GDOP”。
+其中 $n$ 是待估参数的数目， $m$ 是观测量的数目。$\chi_a^2(n)$ 是自由度 $n$ 和 $\alpha=0.001 (0.1\%)$ 的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$ ，可以配置选项“Reject Threshold of GDOP”中进行相关设置。
 
-除了上述解决方案验证之外，RTKLIB在版本2.4.4.2中增加了RAIM（接收机自主完整性监控）FDE（故障检测和排除）功能。如果启用了处理选项“RAIM FDE”并且(E.6.333)中的卡方检验失败，RTKLIB将通过逐个排除可见卫星来重试估计。在所有重试后，选择具有最小归一化平方残差$v^Tv$的估计接收机位置作为最终解。在这种方案中，由于卫星故障、接收机故障或大的多路径导致的无效测量值将被排除为异常值。请注意，此功能在两个或更多无效测量值时无效。它还需要两个冗余的可见卫星，这意味着至少需要6个可见卫星才能获得最终解。
+除了上述解的检验之外，RTKLIB在版本2.4.2中还增加了RAIM（接收机自主完好性监控）FDE（故障检测与排除）功能。如果启用了配置选项“RAIM FDE”，那么在式(E.6.33)中的卡方检验失败后，RTKLIB将通过逐个排除可见卫星来进行重新估计。在重新进行了所有尝试后，选择具有最小归一化平方残差 $\mathbf{v}^T\mathbf{v}$ 的估计位置作为最终解。在这种方案中，由于卫星故障、接收机故障或较严重的多路径所导致的无效观测值将被视为异常值并被剔除掉。请注意，此功能需要2颗冗余的可见卫星，这意味着至少需要6颗可见卫星才能获得最终解。
 
-## E.7 Kinematic, Static and Moving-Baseline
+## E.7 Kinematic, Static 与 Moving-Baseline
 
-RTKLIB采用扩展卡尔曼滤波器（EKF）以获得DGPS/DGNSS、Static、Kinematic、Moving-base模式下的最终解，并结合附录E.3中的GNSS信号测量模型以及附录E.5中的对流层和电离层模型。
+RTKLIB在DGPS/DGNSS、Static、Kinematic、Moving-Base工作模式下采用了扩展卡尔曼滤波（EKF），同时也使用了附录E.3中的GNSS信号测量模型以及附录E.5中的对流层和电离层模型。
 
 ### 7.1 EKF公式
 
-通过使用扩展卡尔曼滤波滤波器（EKF），可以在历元时间$t_k$通过测量向量$y_k$估计未知模型参数的状态向量$x$及其协方差矩阵$P$：
+**EKF量测更新**。EKF在 $t_k$ 时刻（历元时间）通过观测向量 $y_k$ 估计未知模型参数的状态向量 $\mathbf{x}$ 及其协方差矩阵 $\mathbf{P}$ ：
 
-$\begin{equation}
-\hat{x}_k(+) = \hat{x}_k(-) + K_k(y_k - h(\hat{x}_k(-))) \tag{E.7.1}
-\end{equation}$
+$\begin{flalign}
+& \hat{\mathbf{x}}_k(+) = \hat{\mathbf{x}}_k(-) + \mathbf{K}_k(\mathbf{y}_k - \mathbf{h}(\hat{\mathbf{x}}_k(-))) \tag{E.7.1} \\
+& \mathbf{P}_k(+) = (\mathbf{I} - \mathbf{K}_k \mathbf{H}(\hat{\mathbf{x}}_k(-)))\mathbf{P}_k(-) \tag{E.7.2} \\
+& \mathbf{K}_k = \mathbf{P}_k(-)(\mathbf{H}(\hat{\mathbf{x}}_k(-))\mathbf{P}_k(-)\mathbf{H}(\hat{\mathbf{x}}_k(-))^T + \mathbf{R}_k)^{-1} \tag{E.7.3}
+\end{flalign}$
 
-$\begin{equation}
-P_k(+) = (I - K_k H(\hat{x}_k(-)))P_k(-) \tag{E.7.2}
-\end{equation}$
+其中 $\hat{\mathbf{x}}_k$ 和 $\mathbf{P}_k$ 是历元时间的 $t_k$ 估计状态向量和其协方差矩阵。 $−$ 和 $+$ 表示EKF量测更新之前（先验）和之后（后验）。 $\mathbf{h(x)}$ ， $\mathbf{H(x)}$ 和 $\mathbf{R_k}$ 分别是观测模型向量、偏导数矩阵和观测误差协方差矩阵。
 
-$\begin{equation}
-K_k = P_k(-)(H(\hat{x}_k(-))P_k(-)H(\hat{x}_k(-))^T + R_k)^{-1} \tag{E.7.3}
-\end{equation}$
+**EKF时间更新**。假设系统模型是线性的，EKF的状态向量及其协方差矩阵的时间更新可以表示为：
 
-其中$\hat{x}_k$和$P_k$是历元时间的$t_k$估计状态向量和其协方差矩阵。−和+表示EKF测量更新之前和之后。$h(x)$，$H(x)$和$R_k$分别是测量模型向量、偏导数矩阵和测量误差的协方差矩阵。假设系统模型是线性的，EKF的状态向量和其协方差矩阵的时间更新表示为：
+$\begin{flalign}
+& \hat{\mathbf{x}}_{k+1}(-) = \mathbf{F}_k^{k+1} \hat{\mathbf{x}}_k(+) \tag{E.7.4} \\
+& \mathbf{P}_{k+1}(-) = \mathbf{F}_k^{k+1} \mathbf{P}_k(+) \mathbf{F}_k^{k+1^T} + \mathbf{Q}_k^{k+1} \tag{E.7.5}
+\end{flalign}$
 
-$\begin{equation}
-\hat{x}_{k+1}(-) = F_k^{k+1} \hat{x}_k(+) \tag{E.7.4}
-\end{equation}$
-
-$\begin{equation}
-P_{k+1}(-) = F_k^{k+1} P_k(+) F_k^{k+1^T} + Q_k^{k+1} \tag{E.7.5}
-\end{equation}$
-
-其中$F_k^{k+1}$和$Q_k^{k+1}$是从历元时间$t_k$到$t_{k+1}$的系统噪声的转移矩阵和协方差矩阵。
+其中 $\mathbf{F}_k^{k+1}$ 和 $\mathbf{Q}_k^{k+1}$ 是从历元时间 $t_k$ 到 $t_{k+1}$ 的系统噪声的转移矩阵和协方差矩阵。
 
 ### 7.2 双差观测模型
 
-对于短基线（<10公里）的载波相对定位，通常使用以下双差（DD）测量方程来处理$L_i$相位差和伪距。在这些方程中，通过使用双差技术，卫星和接收机的时钟偏差、电离层和对流层影响以及其他次要修正项几乎被消除。
+对于短基线（<10公里）的载波相对定位，通常使用以下双差（DD）观测方程来处理 $L_i$ 相位差和伪距差。在这些方程中，通过使用双差技术，卫星和接收机的钟差、电离层和对流层影响以及其他次要修正项几乎被消除。
 
-$\begin{equation}
-\Phi_{rb,i}^{jk} = \rho_{rb}^{jk} + \lambda_i (B_{rb,i}^j - B_{rb,i}^k) + d\Phi_{r,i}^s + \varepsilon_\Phi \tag{E.7.6}
-\end{equation}$
-
-$\begin{equation}
-P_{rb,i}^{jk} = \rho_{rb}^{jk} + \varepsilon_P \tag{E.7.6}
-\end{equation}$
+$\begin{flalign}
+& \Phi_{rb,i}^{jk} = \rho_{rb}^{jk} + \lambda_i (B_{rb,i}^j - B_{rb,i}^k) + d\Phi_{r,i}^s + \varepsilon_\Phi \\
+& P_{rb,i}^{jk} = \rho_{rb}^{jk} + \varepsilon_P \tag{E.7.6}
+\end{flalign}$
 
 ![DD (double-difference) Formulation](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250220-223859.jpg)
 <p style="text-align: center;">图E.7-1 双差模型</p> 
 
-其中$d\Phi_{r,i}^s$是载波相位修正项，在短基线情况下可以忽略，除非接收机PCV项因使用不同天线而需要考虑。为了在方程中获得几何距离$\rho_r^s$，基站位置$r_b$固定为预定值，除非在移动基线情况下。
+其中 $d\Phi_{r,i}^s$ 是载波相位修正项，在短基线情况下可以忽略，除非接收机PCV项因使用不同天线才需要考虑。为了在方程中获得几何距离 $\rho_r^s$ ，基站位置 $r_b$ 设置为固定值，除非在移动基线模式（moving-baseline）下。
 
-请注意，接收机之间的单差（SD）最好在具有相同历元时间的测量之间进行。然而，由于不同的接收机时钟偏差，接收机并不能完全同步。在一些典型情况下，移动站的采样间隔与基站不同，例如10 Hz和1 Hz。为了控制单差，RTKLIB采用了一个简单的标准来选择测量对。RTKLIB简单地选择在移动站测量的历元时间之前或等于该历元时间的最后一个测量。移动站和基站之间的历元时间差有时被称为“Age of Differential”。随着时间差的增加，由于卫星时钟漂移和电离层延迟的变化，解的精度逐渐降低。为了仅补偿卫星时钟漂移，RTKLIB使用广播的卫星时钟参数对单差测量进行修正。最大“Age of Differential”设置为处理选项“MAX Age of Diff”。
+请注意，接收机之间的单差（SD）最好在具有相同历元时间的测量之间进行。然而，由于不同的接收机钟差，接收机并不能完全同步。在一些典型情况下，移动站的采样间隔与基站不同，例如10 Hz和1 Hz。为了控制单差，RTKLIB采用了一个简单的标准来选择测量对。RTKLIB简单地选择在移动站测量的历元时间之前或等于该历元时间的最后一个测量。移动站和基站之间的历元时间差有时被称为“Age of Differential”。随着时间差的增加，由于卫星钟漂和电离层延迟的变化，解的精度逐渐降低。为了仅补偿卫星钟漂，RTKLIB使用广播的卫星时钟参数对单差测量进行修正。最大“Age of Differential”设置为处理选项“MAX Age of Diff”。
 至于卫星侧的单差生成，RTKLIB在每个历元的基础上选择一个具有最大仰角的参考卫星。请注意，不同导航系统之间的卫星不会生成卫星侧的单差，例如GPS和GLONASS之间。这是因为即使不同导航系统的信号具有相同的载波频率，接收机通常对这些信号有不同的群延迟。接收机中的群延迟差异被称为接收机ISB（inter system bias）。
 
 假设移动站和基站均使用三频GPS/GNSS接收机，待估计的未知状态向量$x$可定义为：
@@ -343,7 +350,7 @@ x = (r_r^T, v_r^T, B_1^T, B_2^T, B_5^T)^T \tag{E.7.7}
 
 其中$B_i = (B_{rb,i}^1, B_{rb,i}^2, \ldots, B_{rb,i}^m)^T$是$L_i$单差（SD）载波相位偏差（周期）。在RTKLIB的实现中，它内部使用SD载波相位偏差而不是双差（DD），以避免繁琐的参考卫星切换处理。SD偏差还有助于解决GLONASS FDMA信号中的整数模糊度。
 
-测量向量$y$也定义为包含双差相位差和伪距测量值：
+测量向量$y$也定义为包含双差相位差和伪距观测值：
 
 $\begin{equation}
 y = (\Phi_1^T, \Phi_2^T, \Phi_5^T, P_1^T, P_2^T, P_5^T)^T \tag{E.7.8}
@@ -535,7 +542,7 @@ $\begin{equation}
 \left( \begin{array}{c} \tilde{r}_x \\ \tilde{r}_y \end{array} \right) = \left( \begin{array}{c} \hat{r}_x \\ \hat{r}_y \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \tilde{N}) \tag{E.7.19}
 \end{equation}$
 
-如果处理选项设置为“Fix and Hold”模式（整周模糊度解析 = Fix and Hold），并且固定解通过之前的测试被正确验证，则双差载波相位偏差参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪”测量值到 EKF，并通过公式 (E.7.1) 更新 EKF：
+如果处理选项设置为“Fix and Hold”模式（整周模糊度解析 = Fix and Hold），并且固定解通过之前的测试被正确验证，则双差载波相位偏差参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：
 
 $\begin{equation}
 y = \tilde{N} \tag{E.7.20}
