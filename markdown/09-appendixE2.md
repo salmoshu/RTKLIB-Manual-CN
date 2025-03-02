@@ -12,13 +12,13 @@ RTKLIB采用迭代加权最小二乘法（LSE）用于“Single”（单点定�
 
 ### 6.1. 线性最小二乘
 
-假设给定测量向量$y$，它可以被建模为一个包含未知参数向量$x$和一个随机测量误差向量$v$的线性方程：
+假设给定测量向量$y$，它可以被建模为一个包含未知参数向量$x$和一个随机观测误差向量$v$的线性方程：
 
 $\begin{equation}
 \mathbf{y} = \mathbf{Hx} + \mathbf{v} \tag{E.6.1}
 \end{equation}$
 
-最小二乘代价函数$J_{LS}$定义为测量误差的平方和：
+最小二乘代价函数$J_{LS}$定义为观测误差的平方和：
 
 $\begin{equation}
 J_{LS} = v_1^2 + v_2^2 + \ldots + v_m^2 = \mathbf{v}^T\mathbf{v} \tag{E.6.2}
@@ -70,7 +70,7 @@ $\begin{equation}
 \mathbf{W} = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2})
 \end{equation}$
 
-其中$\sigma_i$是第$i$个测量误差的先验标准差。
+其中$\sigma_i$是第$i$个观测误差的先验标准差。
 
 ### 6.2 高斯-牛顿迭代
 
@@ -278,7 +278,7 @@ $\begin{equation}
 
 ### 6.5 解的验证与RAIM FDE
 
-6.3中描述的接收机位置估计可能由于未建模的测量误差而产生无效解。为了检验结果是否有效并防止无效解，RTKLIB在完成位置估计后可以采用以下验证方式。如果验证失败，将发出警告信息并拒绝该解。
+6.3中描述的接收机位置估计可能由于未建模的观测误差而产生无效解。为了检验结果是否有效并防止无效解，RTKLIB在完成位置估计后可以采用以下验证方式。如果验证失败，将发出警告信息并拒绝该解。
 
 $\begin{equation}
 v_s = \frac{p_r^s - (\hat{\rho}_i^s + c\hat{d}t_r - cdT^s + I_r^s + T_r^s)}{\sigma_s} \tag{E.6.31}
@@ -302,7 +302,7 @@ GDOP < GDOP_{thres} \tag{E.6.34}
 
 ## E.7 Kinematic, Static 与 Moving-Baseline
 
-RTKLIB在DGPS/DGNSS、Static、Kinematic、Moving-Base工作模式下采用了扩展卡尔曼滤波（EKF），同时也使用了附录E.3中的GNSS信号测量模型以及附录E.5中的对流层和电离层模型。
+RTKLIB在DGPS/DGNSS、Static、Kinematic、Moving-Base工作模式下采用了扩展卡尔曼滤波（EKF），同时也使用了附录E.3中的GNSS信号观测模型以及附录E.5中的对流层和电离层模型。
 
 ### 7.1 EKF公式
 
@@ -314,7 +314,7 @@ $\begin{flalign}
 & \mathbf{K}_k = \mathbf{P}_k(-)(\mathbf{H}(\hat{\mathbf{x}}_k(-))\mathbf{P}_k(-)\mathbf{H}(\hat{\mathbf{x}}_k(-))^T + \mathbf{R}_k)^{-1} \tag{E.7.3}
 \end{flalign}$
 
-其中 $\hat{\mathbf{x}}_k$ 和 $\mathbf{P}_k$ 是历元时间的 $t_k$ 估计状态向量和其协方差矩阵。 $−$ 和 $+$ 表示EKF量测更新之前（先验）和之后（后验）。 $\mathbf{h(x)}$ ， $\mathbf{H(x)}$ 和 $\mathbf{R_k}$ 分别是观测模型向量、偏导数矩阵和观测误差协方差矩阵。
+其中 $\hat{\mathbf{x}}_k$ 和 $\mathbf{P}_k$ 是历元时间的 $t_k$ 估计状态向量和其协方差矩阵。 $−$ 和 $+$ 表示EKF量测更新之前（先验）和之后（后验）。 $\mathbf{h(x)}$ ， $\mathbf{H(x)}$ 和 $\mathbf{R_k}$ 分别是观测模型向量、偏导数矩阵（雅可比矩阵）和观测误差协方差矩阵。
 
 **EKF时间更新**。假设系统模型是线性的，EKF的状态向量及其协方差矩阵的时间更新可以表示为：
 
@@ -323,11 +323,11 @@ $\begin{flalign}
 & \mathbf{P}_{k+1}(-) = \mathbf{F}_k^{k+1} \mathbf{P}_k(+) \mathbf{F}_k^{k+1^T} + \mathbf{Q}_k^{k+1} \tag{E.7.5}
 \end{flalign}$
 
-其中 $\mathbf{F}_k^{k+1}$ 和 $\mathbf{Q}_k^{k+1}$ 是从历元时间 $t_k$ 到 $t_{k+1}$ 的系统噪声的转移矩阵和协方差矩阵。
+其中 $\mathbf{F}_k^{k+1}$ 和 $\mathbf{Q}_k^{k+1}$ 是从历元时间 $t_k$ 到 $t_{k+1}$ 的系统状态转移矩阵和系统噪声协方差矩阵。
 
 ### 7.2 双差观测模型
 
-对于短基线（<10公里）的载波相对定位，通常使用以下双差（DD）观测方程来处理 $L_i$ 相位差和伪距差。在这些方程中，通过使用双差技术，卫星和接收机的钟差、电离层和对流层影响以及其他次要修正项几乎被消除。
+对于短基线（<10公里）的 RTK 场景，通常使用以下双差（DD）观测方程来处理 $L_i$ 的相位差和伪距差。在这些方程中，通过使用双差技术，卫星和接收机的钟差、电离层与对流层影响以及其他次要修正项几乎被完全消除。
 
 $\begin{flalign}
 & \Phi_{rb,i}^{jk} = \rho_{rb}^{jk} + \lambda_i (B_{rb,i}^j - B_{rb,i}^k) + d\Phi_{r,i}^s + \varepsilon_\Phi \\
@@ -337,20 +337,21 @@ $\begin{flalign}
 ![DD (double-difference) Formulation](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250220-223859.jpg)
 <p style="text-align: center;">图E.7-1 双差模型</p> 
 
-其中 $d\Phi_{r,i}^s$ 是载波相位修正项，在短基线情况下可以忽略，除非接收机PCV项因使用不同天线才需要考虑。为了在方程中获得几何距离 $\rho_r^s$ ，基站位置 $r_b$ 设置为固定值，除非在移动基线模式（moving-baseline）下。
+其中 $d\Phi_{r,i}^s$ 是载波相位修正项，在短基线情况下可以忽略，除了 PCV项 （因使用不同接收机天线所导致）。为了在方程中获得几何距离 $\rho_r^s$ ，基站位置 $r_b$ 需要设置为固定值，除非工作模式为动基线模式（Moving-Base）。
 
-请注意，接收机之间的单差（SD）最好在具有相同历元时间的测量之间进行。然而，由于不同的接收机钟差，接收机并不能完全同步。在一些典型情况下，移动站的采样间隔与基站不同，例如10 Hz和1 Hz。为了控制单差，RTKLIB采用了一个简单的标准来选择测量对。RTKLIB简单地选择在移动站测量的历元时间之前或等于该历元时间的最后一个测量。移动站和基站之间的历元时间差有时被称为“Age of Differential”。随着时间差的增加，由于卫星钟漂和电离层延迟的变化，解的精度逐渐降低。为了仅补偿卫星钟漂，RTKLIB使用广播的卫星时钟参数对单差测量进行修正。最大“Age of Differential”设置为处理选项“MAX Age of Diff”。
-至于卫星侧的单差生成，RTKLIB在每个历元的基础上选择一个具有最大仰角的参考卫星。请注意，不同导航系统之间的卫星不会生成卫星侧的单差，例如GPS和GLONASS之间。这是因为即使不同导航系统的信号具有相同的载波频率，接收机通常对这些信号有不同的群延迟。接收机中的群延迟差异被称为接收机ISB（inter system bias）。
+需要注意的是，接收机之间的单差（SD）最好在有相同历元时间的观测量之间进行。然而由于不同的接收机钟差，接收机并不能完全同步。在一些典型情况下，流动站的采样间隔与基站不同，例如很多流动站接收机支持1~10 Hz。RTKLIB在处理单差时，会选择在流动站历元时间之前或等于该历元时间的最后一个基站观测量。流动站和基站之间的历元时间差可以称为差分龄期（Age of Differential），相关的配置选项为“MAX Age of Diff”。随着差分龄期的增加，由于卫星钟漂和电离层延迟，解的精度会逐渐降低。RTKLIB使用广播星历种的的卫星时钟参数对单差观测量中的卫星钟漂进行修正。
 
-假设移动站和基站均使用三频GPS/GNSS接收机，待估计的未知状态向量$x$可定义为：
+至于卫星间单差（也即流动站双差），RTKLIB在每个历元的基础上选择一个具有最大仰角的参考卫星。请注意，不同导航系统之间的卫星会单独进行卫星单差的运算，这是因为即使不同导航系统的信号具有相同的载波频率，接收机通常对这些信号有不同的接收机群延迟ISB（inter system bias）。
+
+假设流动站和基站均使用三频GPS/GNSS接收机，待估计的未知状态向量 $x$ 可定义为：
 
 $\begin{equation}
 x = (r_r^T, v_r^T, B_1^T, B_2^T, B_5^T)^T \tag{E.7.7}
 \end{equation}$
 
-其中$B_i = (B_{rb,i}^1, B_{rb,i}^2, \ldots, B_{rb,i}^m)^T$是$L_i$单差（SD）载波相位偏差（周期）。在RTKLIB的实现中，它内部使用SD载波相位偏差而不是双差（DD），以避免繁琐的参考卫星切换处理。SD偏差还有助于解决GLONASS FDMA信号中的整数模糊度。
+其中 $B_i = (B_{rb,i}^1, B_{rb,i}^2, \ldots, B_{rb,i}^m)^T$ 是 $L_i$ 单差（SD）载波相位模糊度（cycle）。在RTKLIB的实现中，它内部使用SD载波相位模糊度而非双差（DD），主要是为了避免参考卫星切换所造成的麻烦。SD模糊度还有助于解决GLONASS FDMA信号中的整周模糊度。
 
-测量向量$y$也定义为包含双差相位差和伪距观测值：
+观测向量 $y$ 中包含了双差相位和双差伪距观测值：
 
 $\begin{equation}
 y = (\Phi_1^T, \Phi_2^T, \Phi_5^T, P_1^T, P_2^T, P_5^T)^T \tag{E.7.8}
@@ -358,39 +359,38 @@ y = (\Phi_1^T, \Phi_2^T, \Phi_5^T, P_1^T, P_2^T, P_5^T)^T \tag{E.7.8}
 
 其中：
 
-$\Phi_i = (\phi_{rb,i}^{12}, \phi_{rb,i}^{13}, \phi_{rb,i}^{14}, \ldots, \phi_{rb,i}^{1m})^T$
-
+$\Phi_i = (\phi_{rb,i}^{12}, \phi_{rb,i}^{13}, \phi_{rb,i}^{14}, \ldots, \phi_{rb,i}^{1m})^T$ <br>
 $P_i = (p_{rb,i}^{12}, p_{rb,i}^{13}, p_{rb,i}^{14}, \ldots, p_{rb,i}^{1m})^T$
 
 ### 7.3 EKF量测更新
 
-通过使用方程(E.7.6)，测量模型向量$h(x)$、偏导数矩阵$H(x)$和测量误差的协方差矩阵$R$可以表示为：
+通过式(E.7.6)，观测模型向量 $\mathbf{h(x)}$ 、偏导数矩阵 $\mathbf{H(x)}$ （雅可比矩阵）和观测误差协方差矩阵 $\mathbf{R}$ 可以表示为：
 
 $\begin{equation}
-h(x) = (h_{\Phi,1}^T, h_{\Phi,2}^T, h_{\Phi,5}^T, h_{p,1}^T, h_{p,2}^T, h_{p,5}^T)^T \tag{E.7.9}
+\mathbf{h(x)} = (\mathbf{h}_{\Phi,1}^T, \mathbf{h}_{\Phi,2}^T, \mathbf{h}_{\Phi,5}^T, \mathbf{h}_{p,1}^T, \mathbf{h}_{p,2}^T, \mathbf{h}_{p,5}^T)^T \tag{E.7.9}
 \end{equation}$
 
 $\begin{equation}
-H(x) = \left.\frac{\partial h(x)}{\partial x}\right|_{x=\hat{x}} = 
+\mathbf{H(x)} = \left.\frac{\partial \mathbf{h(x)}}{\partial \mathbf{x}}\right|_{\mathbf{x}=\hat{\mathbf{x}}} = 
 \begin{pmatrix}
--DE & 0 & \lambda_1 D & 0 & 0 \\
--DE & 0 & 0 & \lambda_2 D & 0 \\
--DE & 0 & 0 & 0 & \lambda_5 D \\
--DE & 0 & 0 & 0 & 0 \\
--DE & 0 & 0 & 0 & 0
+-\mathbf{DE} & 0 & \lambda_1 \mathbf{D} & 0 & 0 \\
+-\mathbf{DE} & 0 & 0 & \lambda_2 \mathbf{D} & 0 \\
+-\mathbf{DE} & 0 & 0 & 0 & \lambda_5 \mathbf{D} \\
+-\mathbf{DE} & 0 & 0 & 0 & 0 \\
+-\mathbf{DE} & 0 & 0 & 0 & 0
 \end{pmatrix} \tag{E.7.10}
 \end{equation}$
 
 $\begin{equation}
 \small
-R = 
+\mathbf{R} = 
 \begin{pmatrix}
-DR_{\Phi,1}D^T & & & & \\
-& DR_{\Phi,2}D^T & & & \\
-& & DR_{\Phi,5}D^T & & \\
-& & & DR_{p,1}D^T & \\
-& & & & DR_{p,2}D^T & \\
-& & & & & DR_{p,5}D^T
+\mathbf{DR}_{\Phi,1}\mathbf{D}^T & & & & \\
+& \mathbf{DR}_{\Phi,2}\mathbf{D}^T & & & \\
+& & \mathbf{DR}_{\Phi,5}\mathbf{D}^T & & \\
+& & & \mathbf{DR}_{p,1}\mathbf{D}^T & \\
+& & & & \mathbf{DR}_{p,2}\mathbf{D}^T & \\
+& & & & & \mathbf{DR}_{p,5}\mathbf{D}^T
 \end{pmatrix} \tag{E.7.11}
 \end{equation}$
 
@@ -418,17 +418,17 @@ $D =
 1 & 0 & -1 & \cdots & 0 \\
 \vdots & \vdots & \vdots & \ddots & \vdots \\
 1 & 0 & 0 & \cdots & -1
-\end{pmatrix} : \text{SD (single-differencing) matrix}$
+\end{pmatrix}$： SD (单差) 矩阵
 
 $R_{\Phi,i} = \text{diag}(2\sigma_{\Phi,i}^{1^2}, 2\sigma_{\Phi,i}^{2^2}, \ldots, 2\sigma_{\Phi,i}^{m^2})$
 
 $R_{P,i} = \text{diag}(2\sigma_{P,i}^{1^2}, 2\sigma_{P,i}^{2^2}, \ldots, 2\sigma_{P,i}^{m^2})$
 
-$\sigma_{\Phi,i}^S$：$L_i$相位差测量误差的标准差（米）
+$\sigma_{\Phi,i}^S$： $L_i$ 相位差观测误差的标准差（米）
 
-$\sigma_{P,i}^S$：$L_i$伪距测量误差的标准差（米）
+$\sigma_{P,i}^S$： $L_i$ 伪距观测误差的标准差（米）
 
-通过求解EKF公式(E.7.1)，可以获得历元时间$t_k$处估计的移动站天线位置、速度和浮点单差载波相位偏差。
+通过求解式(E.7.1)中的量测更新，可以获得 $t_k$ 时刻估计的流动站天线位置、速度和浮点单差（载波相位）模糊度。
 
 ### 7.4 EKF时间更新
 
@@ -454,7 +454,7 @@ Q_k^{k+1} =
 
 $Q_v = E_r^T \text{diag}(\sigma_{ve}^2 \tau_r, \sigma_{vn}^2 \tau_r, \sigma_{vu}^2 \tau_r) E_r$
 
-并且$\tau_r = t_{k+1} - t_k$是GPS/GNSS接收机采样间隔（s），$(\sigma_{ve}, \sigma_{vn}, \sigma_{vu})$是移动站速度系统噪声的东西、北、上分量的标准差（m/s/√s）。
+并且$\tau_r = t_{k+1} - t_k$是GPS/GNSS接收机采样间隔（s），$(\sigma_{ve}, \sigma_{vn}, \sigma_{vu})$是流动站速度系统噪声的东西、北、上分量的标准差（m/s/√s）。
 
 对于纯运动学模式且不考虑接收机动态（Positioning Mode = Kinematic, REC Dynamics = OFF），方程(E.7.9)被替换为：
 
@@ -474,7 +474,7 @@ Q_k^{k+1} =
 \end{pmatrix} \tag{E.7.13}
 \end{flalign}$
 
-为了避免因将无限大的过程噪声添加到接收机位置的方差而导致数值不稳定，接收机位置状态在每个历元被重置为初始猜测值，并且在RTKLIB中向方差中添加了足够大的过程噪声（$10^4 m^2$）。初始位置是从单点定位过程导出的，该过程用于避免非线性信号测量模型的迭代。
+为了避免因将无限大的过程噪声添加到接收机位置的方差而导致数值不稳定，接收机位置状态在每个历元被重置为初始猜测值，并且在RTKLIB中向方差中添加了足够大的过程噪声（$10^4 m^2$）。初始位置是从单点定位过程导出的，该过程用于避免非线性信号观测模型的迭代。
 
 在静态模式（Positioning Mode = Static）中，方程(E.7.10)被简单地替换为：
 
@@ -494,7 +494,7 @@ Q_k^{k+1} =
 \end{pmatrix} \tag{E.7.14}
 \end{flalign}$
 
-在瞬时模糊度解算模式（整数模糊度解算=瞬时）中，SD载波相位偏差$B_i$的时间更新处理方式与上述略有不同。在这种模式下，载波相位偏差状态的值不会通过EKF时间更新传递到下一个历元。偏差在每个历元被重置为初始猜测值，并且在方差中添加了足够大的过程噪声（$10^4 m^2$）。如果在测量数据中检测到周跳，相应的SD载波相位偏差状态也会被重置为初始值。RTKLIB通过输入测量数据中的LLI（失锁指示）和双频测量的无几何LC（线性组合）相位跳变来检测周跳。周跳阈值可以通过处理选项“Slip Thres”来更改。
+在瞬时模糊度解算模式（整数模糊度解算=瞬时）中，SD载波相位模糊度$B_i$的时间更新处理方式与上述略有不同。在这种模式下，载波相位模糊度状态的值不会通过EKF时间更新传递到下一个历元。模糊度在每个历元被重置为初始猜测值，并且在方差中添加了足够大的过程噪声（$10^4 m^2$）。如果在测量数据中检测到周跳，相应的SD载波相位模糊度状态也会被重置为初始值。RTKLIB通过输入测量数据中的LLI（失锁指示）和双频测量的无几何LC（线性组合）相位跳变来检测周跳。周跳阈值可以通过处理选项“Slip Thres”来更改。
 
 ### 7.5 整周模糊度解算
 
@@ -522,7 +522,7 @@ I_{6 \times 6} &  & & \\
 & & & D
 \end{pmatrix} : \text{SD to DD transformation matrix}$
 
-在这个转换过程中，SD 载波相位偏差被转换为 DD 载波相位形式，以消除接收机初始相位项，从而获得整数模糊度 $\tilde{N}$ 及其协方差 $Q_N$。在这些公式中，通过求解一个整数最小二乘（ILS）问题，可以得到最合适的整数模糊度向量 $\tilde{N}$，该问题表示为：
+在这个转换过程中，SD 载波相位模糊度被转换为 DD 载波相位形式，以消除接收机初始相位项，从而获得整数模糊度 $\tilde{N}$ 及其协方差 $Q_N$。在这些公式中，通过求解一个整数最小二乘（ILS）问题，可以得到最合适的整数模糊度向量 $\tilde{N}$，该问题表示为：
 
 $\begin{equation}
 \tilde{N} = \arg\min_{N \in \mathbb{Z}} (N - \hat{N})^T Q_N^{-1} (N - \hat{N}) \tag{E.7.17}
@@ -542,7 +542,7 @@ $\begin{equation}
 \left( \begin{array}{c} \tilde{r}_x \\ \tilde{r}_y \end{array} \right) = \left( \begin{array}{c} \hat{r}_x \\ \hat{r}_y \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \tilde{N}) \tag{E.7.19}
 \end{equation}$
 
-如果处理选项设置为“Fix and Hold”模式（整周模糊度解析 = Fix and Hold），并且固定解通过之前的测试被正确验证，则双差载波相位偏差参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：
+如果处理选项设置为“Fix and Hold”模式（整周模糊度解析 = Fix and Hold），并且固定解通过之前的测试被正确验证，则双差载波相位模糊度参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：
 
 $\begin{equation}
 y = \tilde{N} \tag{E.7.20}
@@ -573,7 +573,7 @@ $\sigma_c$ : 约束到固定整数模糊度的误差（≈ 0.001 cycle）
 
 “Fix and Hold”模式最初在 RTKLIB 版本 2.4.0 中引入，目的是在运动接收机的运动模式下特别提高固定解的比率。
 
-### 7.6 长基线双差测量模型
+### 7.6 长基线双差观测模型
 
 对于接收机r和基站b之间的长基线处理，可以形成类似于短基线双差（DD）模型的以下双差测量方程：
 
@@ -593,7 +593,7 @@ x = \left(r_r{}^T, v_r{}^T, Z_r, G_{N, r}, G_{E, r}, Z_b, G_{N, b}, G_{E, b}, I^
 
 其中 $Z_r$ 和 $Z_b$ 是 ZTD（zenith total delay）在Rover和基站位置的值，$G_{N, r}$、$G_{E, r}$、$G_{N, b}$ 和 $G_{E, b}$ 是对流层梯度的北向和东向分量。$I = (I_{rb}^{1}, I_{rb}^{2}, \ldots, I_{rb}^{m})^{T}$ 是 $L_1$ 频率（$m$）下的SD垂直电离层延迟。
 
-测量模型向量 $h(x)$ 和偏导数矩阵 $H(x)$ 可以表示为：
+观测模型向量 $h(x)$ 和偏导数矩阵 $H(x)$ 可以表示为：
 
 $\begin{flalign}
 h(x) = (h_{\Phi,1}^T, h_{\Phi,2}^T, h_{\Phi,5}^T, h_{p,1}^T, h_{p,2}^T, h_{p,5}^T)^T \tag{E.7.26}
