@@ -420,19 +420,16 @@ $D =
 1 & 0 & 0 & \cdots & -1
 \end{pmatrix}$： SD (单差) 矩阵
 
-$R_{\Phi,i} = \text{diag}(2\sigma_{\Phi,i}^{1^2}, 2\sigma_{\Phi,i}^{2^2}, \ldots, 2\sigma_{\Phi,i}^{m^2})$
-
-$R_{P,i} = \text{diag}(2\sigma_{P,i}^{1^2}, 2\sigma_{P,i}^{2^2}, \ldots, 2\sigma_{P,i}^{m^2})$
-
-$\sigma_{\Phi,i}^S$： $L_i$ 相位差观测误差的标准差（米）
-
-$\sigma_{P,i}^S$： $L_i$ 伪距观测误差的标准差（米）
+$R_{\Phi,i} = \text{diag}(2\sigma_{\Phi,i}^{1^2}, 2\sigma_{\Phi,i}^{2^2}, \ldots, 2\sigma_{\Phi,i}^{m^2})$ <br>
+$R_{P,i} = \text{diag}(2\sigma_{P,i}^{1^2}, 2\sigma_{P,i}^{2^2}, \ldots, 2\sigma_{P,i}^{m^2})$ <br>
+$\sigma_{\Phi,i}^S$： $L_i$ 相位差观测误差的标准差（m） <br>
+$\sigma_{P,i}^S$： $L_i$ 伪距观测误差的标准差（m）
 
 通过求解式(E.7.1)中的量测更新，可以获得 $t_k$ 时刻估计的流动站天线位置、速度和浮点单差（载波相位）模糊度。
 
 ### 7.4 EKF时间更新
 
-在RTKLIB中，对于具有接收机动态的运动定位模式（Positioning Mode = Kinematic 并且 REC Dynamics = ON），EKF的时间更新（E.7.2）表示为：
+在RTKLIB中，设置了接收机动态的 Kinematic 模式（Positioning Mode = Kinematic， REC Dynamics = ON），EKF的时间更新（E.7.2）表示为：
 
 $\begin{flalign}
 \small
@@ -454,9 +451,9 @@ Q_k^{k+1} =
 
 $Q_v = E_r^T \text{diag}(\sigma_{ve}^2 \tau_r, \sigma_{vn}^2 \tau_r, \sigma_{vu}^2 \tau_r) E_r$
 
-并且$\tau_r = t_{k+1} - t_k$是GPS/GNSS接收机采样间隔（s），$(\sigma_{ve}, \sigma_{vn}, \sigma_{vu})$是流动站速度系统噪声的东西、北、上分量的标准差（m/s/√s）。
+$\tau_r = t_{k+1} - t_k$ 是GPS/GNSS接收机采样间隔（s）， $(\sigma_{ve}, \sigma_{vn}, \sigma_{vu})$ 是流动站速度噪声的东西、南北、垂直分量的标准差（m/s/√s）。
 
-对于纯运动学模式且不考虑接收机动态（Positioning Mode = Kinematic, REC Dynamics = OFF），方程(E.7.9)被替换为：
+对于不考虑接收机动态的 Kinematic 模式（Positioning Mode = Kinematic, REC Dynamics = OFF），方程(E.7.9)被替换为：
 
 $\begin{flalign}
 \small
@@ -474,9 +471,9 @@ Q_k^{k+1} =
 \end{pmatrix} \tag{E.7.13}
 \end{flalign}$
 
-为了避免因将无限大的过程噪声添加到接收机位置的方差而导致数值不稳定，接收机位置状态在每个历元被重置为初始猜测值，并且在RTKLIB中向方差中添加了足够大的过程噪声（$10^4 m^2$）。初始位置是从单点定位过程导出的，该过程用于避免非线性信号观测模型的迭代。
+为了避免因将无限大的过程噪声添加到接收机位置的方差而导致数值不稳定，接收机位置状态在每个历元被重置为初始猜测值，并在 RTKLIB 中添加了足够大的过程噪声（$10^4 m^2$）。初始位置来源于单点定位，这用于避免非线性测量模型的迭代（如果没有设置初始位置，并且位置方差设置无穷大，就要靠量测更新多次迭代算出一个位置初值）。
 
-在静态模式（Positioning Mode = Static）中，方程(E.7.10)被简单地替换为：
+在 Static 模式（Positioning Mode = Static）中，方程(E.7.10)被简单地替换为：
 
 $\begin{flalign}
 \small
@@ -494,18 +491,18 @@ Q_k^{k+1} =
 \end{pmatrix} \tag{E.7.14}
 \end{flalign}$
 
-在瞬时模糊度解算模式（整数模糊度解算=瞬时）中，SD载波相位模糊度$B_i$的时间更新处理方式与上述略有不同。在这种模式下，载波相位模糊度状态的值不会通过EKF时间更新传递到下一个历元。模糊度在每个历元被重置为初始猜测值，并且在方差中添加了足够大的过程噪声（$10^4 m^2$）。如果在测量数据中检测到周跳，相应的SD载波相位模糊度状态也会被重置为初始值。RTKLIB通过输入测量数据中的LLI（失锁指示）和双频测量的无几何LC（线性组合）相位跳变来检测周跳。周跳阈值可以通过处理选项“Slip Thres”来更改。
+在 Instantaneous 糊度解算模式（nteger Ambiguity Resolution = Instantaneous）下，单差载波相位模糊度 $B_i$ 的时间更新处理方式与上述略有不同。在这种模式下，载波相位模糊度状态的值不会通过EKF时间更新传递到下一个历元。模糊度在每个历元被重置为初始猜测值，并且在方差中添加了足够大的过程噪声（$10^4 m^2$）。如果在测量数据中检测到周跳，相应的单差载波相位模糊度状态也会被重置为初始值。RTKLIB通过输入测量数据中的LLI（失锁指示）和双频测量的几何无关LC（线性组合）相位来探测周跳。周跳阈值可以通过配置选项“Slip Thres”来更改。
 
 ### 7.5 整周模糊度解算
 
-一旦在EKF测量更新中获得估计状态，浮点载波相位模糊度可以被解算为整数值，以提高精度和收敛时间（Integer Ambiguity Res = Continuous, Instantaneous or Fix and Hold）。首先，估计状态及其协方差矩阵通过以下方式转换为双差（DD）形式：
+EKF量测更新获得估计状态后，浮点载波相位模糊度（简称浮点模糊度）可以被解算为整数值，以提高精度和收敛速度。目前相关的配置选项是Integer Ambiguity Res，它可以设置为Continuous, Instantaneous 或 Fix and Hold 模式。首先，估计状态（单差和位置）及其协方差矩阵通过以下方式转换为双差（DD）形式：
 
 $\begin{equation}
-\tilde{x}_k' = G \tilde{x}_k(+) = (\tilde{r}_r^T, \tilde{v}_r^T, \tilde{N}^T)^T \tag{E.7.15}
+\hat{x}_k^{\prime} = G \hat{x}_k(+) = (\hat{r}_r^T, \hat{v}_r^T, \hat{N}^T)^T \tag{E.7.15}
 \end{equation}$
 
 $\begin{equation}
-P_k' = G P_k(+) G^T = 
+P_k^{\prime} = G P_k(+) G^T = 
 \begin{pmatrix}
 Q_R & Q_{NR} \\
 Q_{RN} & Q_N
@@ -520,32 +517,40 @@ I_{6 \times 6} &  & & \\
 & D & & \\
 & & D & \\
 & & & D
-\end{pmatrix} : \text{SD to DD transformation matrix}$
+\end{pmatrix}$： SD-DD 转换矩阵
 
-在这个转换过程中，SD 载波相位模糊度被转换为 DD 载波相位形式，以消除接收机初始相位项，从而获得整数模糊度 $\tilde{N}$ 及其协方差 $Q_N$。在这些公式中，通过求解一个整数最小二乘（ILS）问题，可以得到最合适的整数模糊度向量 $\tilde{N}$，该问题表示为：
+在这个转换过程中，单差载波相位模糊度被转换为双差形式，以消除接收机初始相位项（initial  phase  terms），从而获得整数模糊度 $\tilde{N}$ 及其协方差 $Q_N$。
+
+::: info “单差转双差以消除接收机初始相位项”的含义
+载波相位测量值不仅包含几何距离、模糊度和钟差，还包括接收机硬件引入的初始相位偏差（Initial Phase Bias）。这是由于接收机的本地振荡器（Local Oscillator）在测量载波相位时有一个未知的起始相位。它应该可以被吸收到接收机钟差项中。
+
+单差能消除卫星钟差和短基线情形下的大部分大气延时误差，而单差转双差我们更关心的是它能进一步消除掉接收机钟差。
+:::
+
+在上述公式中，通过求解一个整数最小二乘（ILS）问题，可以得到最合适的整数模糊度向量 $\stackrel{\smile}{N}$，该问题表示为：
 
 $\begin{equation}
-\tilde{N} = \arg\min_{N \in \mathbb{Z}} (N - \hat{N})^T Q_N^{-1} (N - \hat{N}) \tag{E.7.17}
+\stackrel{\smile}{N} = \arg\min_{N \in \mathbb{Z}} (N - \hat{N})^T Q_N^{-1} (N - \hat{N}) \tag{E.7.17}
 \end{equation}$
 
 其中，$\mathbb{Z}$ 表示整数集。
 
-为了解决ILS问题，RTKLIB采用了一种著名的高效搜索策略LAMBDA [66]及其扩展MLAMBDA [67]。LAMBDA和MLAMBDA提供了线性变换和变换空间中熟练的树搜索过程的组合，以缩小整数向量搜索空间。这些过程得到的整数向量解通过以下简单的“Ratio-Test”进行验证。在“Ratio-Test”中，比率因子 $R$ 定义为次优解 $N_2$ 的加权残差平方和最优 $N$ 的加权残差平方和的比值，用于检查解的可靠性。验证阈值 $R_{thres}$ 可以通过处理选项“Min Ratio to Fix Ambiguity”设置。当前版本的RTKLIB仅支持固定的阈值。
+为了解决 ILS 问题， RTKLIB 采用了一种高效且应用广泛的搜索策略 LAMBDA [66]及其扩展 MLAMBDA [67]。 LAMBDA 和 MLAMBDA 提供了线性变换和变换空间中进行树搜索的组合，从而缩小整数向量搜索空间。解算得到的整数向量解通过以下简单的“Ratio-Test”进行验证。在“Ratio-Test”中，比率因子 $R$ 定义为次优解 $N_2$ 的加权残差平方和最优 $N$ 的加权残差平方和的比值，用于检查解的可靠性。验证阈值 $R_{thres}$ 可以通过配置选项“Min Ratio to Fix Ambiguity”进行设置。原始版本的 RTKLIB 仅支持固定的阈值，而在 demo5 改进版本中，能够支持自适应 Ratio 。
 
 $\begin{equation}
-R = \frac{(\tilde{N}_2 - \hat{N})^T Q_N^{-1} (\tilde{N}_2 - \hat{N})}{(\tilde{N} - \hat{N})^T Q_N^{-1} (\tilde{N} - \hat{N})} > R_{thres} \tag{E.7.18}
+R = \frac{(\stackrel{\smile}{N}_2 - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N}_2 - \hat{N})}{(\stackrel{\smile}{N} - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N} - \hat{N})} > R_{thres} \tag{E.7.18}
 \end{equation}$
 
-验证之后，Rover天线位置和速度的“FIXED”解 $\hat{r}_r$ 和 $\hat{v}_r$ 通过求解以下方程获得。如果验证失败，RTKLIB 则输出“FLOAT”解 $\hat{r}_r$ 和 $\hat{v}_r$ 代替。
+验证通过后，Rover的固定（FIX）解 $\hat{r}_r$ 和 $\hat{v}_r$ 通过求解以下方程获得。如果验证失败，RTKLIB 则输出浮点（FLOAT）解 $\hat{r}_r$ 和 $\hat{v}_r$ 代替。
 
 $\begin{equation}
-\left( \begin{array}{c} \tilde{r}_x \\ \tilde{r}_y \end{array} \right) = \left( \begin{array}{c} \hat{r}_x \\ \hat{r}_y \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \tilde{N}) \tag{E.7.19}
+\left( \begin{array}{c} \stackrel{\smile}{r}_x \\ \stackrel{\smile}{r}_y \end{array} \right) = \left( \begin{array}{c} \hat{r}_x \\ \hat{r}_y \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \stackrel{\smile}{N}) \tag{E.7.19}
 \end{equation}$
 
-如果处理选项设置为“Fix and Hold”模式（整周模糊度解析 = Fix and Hold），并且固定解通过之前的测试被正确验证，则双差载波相位模糊度参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：
+如果配置选项设置为“Fix and Hold”模式（Integer Ambiguity Res = Fix and Hold），并且固定解通过之前的验证通过，则双差载波相位模糊度参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪（pseudo"）”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：
 
 $\begin{equation}
-y = \tilde{N} \tag{E.7.20}
+y = \stackrel{\smile}{N} \tag{E.7.20}
 \end{equation}$
 
 $\begin{equation}
@@ -567,11 +572,11 @@ $G =
 0 & D & & \\
 0 & & D & \\
 0 & & & D
-\end{pmatrix} : \text{SD to DD transformation matrix}$
+\end{pmatrix}$：SD to DD 转换矩阵
 
-$\sigma_c$ : 约束到固定整数模糊度的误差（≈ 0.001 cycle）
+$\sigma_c$ : 约束到固定的整数模糊度误差（≈ 0.001 cycle）
 
-“Fix and Hold”模式最初在 RTKLIB 版本 2.4.0 中引入，目的是在运动接收机的运动模式下特别提高固定解的比率。
+“Fix and Hold”模式最初在 RTKLIB 2.4.0 版本中引入，它能显著提高接收机在运动状态下的固定率。
 
 ### 7.6 长基线双差观测模型
 
@@ -669,11 +674,11 @@ Q_k^{k+1} = \begin{pmatrix}
 \end{pmatrix} \tag{E.7.31}
 \end{equation}$
 
-其中，$Q_T$和$Q_I$分别为电离层和对流层项的过程噪声协方差矩阵。在该方程中，Rover和基站的ZTD（天顶总延迟）及梯度参数，以及每颗卫星的SD（单差）垂直电离层延迟，均被简单地建模为随机游走过程。此外，为了估计电离层和对流层项，在2.4.1版本中为长基线处理增加了一个“部分固定”功能。这意味着只有部分模糊度被解算为整数值，其余未固定的模糊度仍保持为浮点值。为了确定模糊度是否固定，RTKLIB中实现了一个使用卫星仰角的简单标准。如果卫星的仰角低于设定的阈值，则该卫星的模糊度不会被固定。只有仰角高于阈值的卫星的模糊度才会被解算为整数。模糊度解算的仰角阈值可以通过处理选项“最小仰角固定模糊度”（Min Elevation to Fix Amb）以及“最小仰角保持模糊度”（Min Elevation to Hold Amb）来设置，以控制“固定和保持”（Fix and Hold）功能。
+其中，$Q_T$和$Q_I$分别为电离层和对流层项的过程噪声协方差矩阵。在该方程中，Rover和基站的ZTD（天顶总延迟）及梯度参数，以及每颗卫星的SD（单差）垂直电离层延迟，均被简单地建模为随机游走过程。此外，为了估计电离层和对流层项，在2.4.1版本中为长基线处理增加了一个“部分固定”功能。这意味着只有部分模糊度被解算为整数值，其余未固定的模糊度仍保持为浮点值。为了确定模糊度是否固定，RTKLIB中实现了一个使用卫星仰角的简单标准。如果卫星的仰角低于设定的阈值，则该卫星的模糊度不会被固定。只有仰角高于阈值的卫星的模糊度才会被解算为整数。模糊度解算的仰角阈值可以通过配置选项“最小仰角固定模糊度”（Min Elevation to Fix Amb）以及“最小仰角保持模糊度”（Min Elevation to Hold Amb）来设置，以控制“固定和保持”（Fix and Hold）功能。
 
 ### 7.7 动态基线模型
 
-移动基线模式通常在Rover和基站接收器都在移动且仅需要Rover相对于基站的相对位置时使用。通过在移动平台上安装两个天线，可以利用移动基线模式确定精确姿态。在 RTKLIB 中，如果将处理选项“定位模式”设置为“移动基线”，则应用移动基线模式。
+移动基线模式通常在Rover和基站接收器都在移动且仅需要Rover相对于基站的相对位置时使用。通过在移动平台上安装两个天线，可以利用移动基线模式确定精确姿态。在 RTKLIB 中，如果将配置选项“定位模式”设置为“移动基线”，则应用移动基线模式。
 
 在移动基线模式下，基站位置不是固定的，而是通过逐历元的单点定位过程估计的。一旦获得基站位置，将基站位置固定为估计位置，并通过 (1)-(5) 中描述的短基线运动模式估计Rover位置。在这种情况下，只有相对位置是有意义的，也就是说，Rover和基站的绝对位置解的精度仅与点定位模式的解相同。
 
@@ -683,7 +688,7 @@ $\begin{equation}
 \boldsymbol{r}_b(t_r) = \boldsymbol{r}_b(t_b) + \boldsymbol{v}_b(t_b)(t_r - t_b) \tag{E.7.32}
 \end{equation}$
 
-其中，$t_r$和 $t_b$分别是通过单点定位过程估计的Rover和基站的信号接收时间。$v_b{t_b}$也是通过多普勒测量估计的基站速度。对于通过移动基线模式进行姿态确定的情况，如果启用处理选项“基线长度约束”（Baseline Length Constraint），则可以应用基线长度约束。该约束在 EKF 测量更新中应用以下伪测量：
+其中，$t_r$和 $t_b$分别是通过单点定位过程估计的Rover和基站的信号接收时间。$v_b{t_b}$也是通过多普勒测量估计的基站速度。对于通过移动基线模式进行姿态确定的情况，如果启用配置选项“基线长度约束”（Baseline Length Constraint），则可以应用基线长度约束。该约束在 EKF 量测更新中应用以下伪测量：
 
 $\begin{equation}
 \boldsymbol{y} = (\boldsymbol{r}_{\text{baseline}}) \tag{E.7.33}
@@ -701,7 +706,7 @@ $\begin{equation}
 \boldsymbol{R} = (\sigma_r^2) \tag{E.7.36}
 \end{equation}$
 
-其中，$r_baseline$ 是给定的预设基线长度（单位：米），$\sigma_r$是基线长度的约束（单位：米）。为了应对非常短的基线长度情况下的非线性问题，可以通过将处理选项“滤波器迭代次数”（Number of Filter Iteration）设置为大于1，来支持扩展卡尔曼滤波器（EKF）的迭代测量更新。
+其中，$r_baseline$ 是给定的预设基线长度（单位：米），$\sigma_r$是基线长度的约束（单位：米）。为了应对非常短的基线长度情况下的非线性问题，可以通过将配置选项“滤波器迭代次数”（Number of Filter Iteration）设置为大于1，来支持扩展卡尔曼滤波器（EKF）的迭代量测更新。
 
 ## E.8 PPP
 
