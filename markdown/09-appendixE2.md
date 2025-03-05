@@ -541,10 +541,10 @@ $\begin{equation}
 R = \frac{(\stackrel{\smile}{N}_2 - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N}_2 - \hat{N})}{(\stackrel{\smile}{N} - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N} - \hat{N})} > R_{thres} \tag{E.7.18}
 \end{equation}$
 
-验证通过后，Rover的固定（FIX）解 $\hat{r}_r$ 和 $\hat{v}_r$ 通过求解以下方程获得。如果验证失败，RTKLIB 则输出浮点（FLOAT）解 $\hat{r}_r$ 和 $\hat{v}_r$ 代替。
+验证通过后，Rover的固定（FIX）解 $\stackrel{\smile}{r}_r$ 和 $\stackrel{\smile}{v}_r$ 通过求解以下方程获得。如果验证失败，RTKLIB 则输出浮点（FLOAT）解 $\hat{r}_r$ 和 $\hat{v}_r$ 代替。
 
 $\begin{equation}
-\left( \begin{array}{c} \stackrel{\smile}{r}_x \\ \stackrel{\smile}{r}_y \end{array} \right) = \left( \begin{array}{c} \hat{r}_x \\ \hat{r}_y \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \stackrel{\smile}{N}) \tag{E.7.19}
+\left( \begin{array}{c} \stackrel{\smile}{r}_r \\ \stackrel{\smile}{v}_r \end{array} \right) = \left( \begin{array}{c} \hat{r}_r \\ \hat{v}_r \end{array} \right) - Q_{RN} Q_N^{-1} (\hat{N} - \stackrel{\smile}{N}) \tag{E.7.19}
 \end{equation}$
 
 如果配置选项设置为“Fix and Hold”模式（Integer Ambiguity Res = Fix and Hold），并且固定解通过之前的验证通过，则双差载波相位模糊度参数会被严格约束到固定的整数值。为此，RTKLIB 会输入以下“伪（pseudo"）”观测值到 EKF，并通过公式 (E.7.1) 更新 EKF：

@@ -4,7 +4,7 @@ sidebarDepth: 2
 
 # 1. 摘要
 
-RTKLIB 是知名的全球导航卫星系统（GNSS）开源定位算法程序包，由日本东京海洋大学的高须知二（Tomoji Takasu）开发，由一个核心程序库和多个命令行程序、界面程序组成。RTKLIB具有以下特点：
+RTKLIB是一个用于全球导航卫星系统（GNSS）标准定位和精密定位的开源程序包，由日本东京海洋大学的高须知二（Tomoji Takasu）开发。它由一个核心程序库和多个命令行程序与界面程序组成。RTKLIB具有以下特点：
 
 1. **支持的星座**。支持GPS<sup>[1][2][3]</sup>、GLONASS<sup>[4]</sup>、Galileo<sup>[5]</sup>、QZSS<sup>[6]</sup>、北斗<sup>[7]</sup>和SBAS<sup>[8]</sup>等卫星导航系统。
 2. **定位模式**。支持多种GNSS实时和后处理定位模式：
