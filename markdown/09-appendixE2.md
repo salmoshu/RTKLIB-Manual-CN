@@ -535,7 +535,9 @@ $\begin{equation}
 
 其中，$\mathbb{Z}$ 表示整数集。
 
-为了解决 ILS 问题， RTKLIB 采用了一种高效且应用广泛的搜索策略 LAMBDA [66]及其扩展 MLAMBDA [67]。 LAMBDA 和 MLAMBDA 提供了线性变换和变换空间中进行树搜索的组合，从而缩小整数向量搜索空间。解算得到的整数向量解通过以下简单的“Ratio-Test”进行验证。在“Ratio-Test”中，比率因子 $R$ 定义为次优解 $N_2$ 的加权残差平方和最优 $N$ 的加权残差平方和的比值，用于检查解的可靠性。验证阈值 $R_{thres}$ 可以通过配置选项“Min Ratio to Fix Ambiguity”进行设置。原始版本的 RTKLIB 仅支持固定的阈值，而在 demo5 改进版本中，能够支持自适应 Ratio 。
+为了解决 ILS 问题， RTKLIB 采用了一种高效且应用广泛的搜索策略 LAMBDA [66]及其扩展 MLAMBDA [67]。 LAMBDA 和 MLAMBDA 提供了线性变换和变换空间中进行树搜索的组合，从而缩小整数向量搜索空间。
+
+解算得到的整数向量解通过以下简单的“Ratio-Test”进行验证。在“Ratio-Test”中，比率因子 $R$ 定义为次优解 $N_2$ 的加权残差平方和最优 $N$ 的加权残差平方和的比值，用于检查解的可靠性。验证阈值 $R_{thres}$ 可以通过配置选项“Min Ratio to Fix Ambiguity”进行设置。原始版本的 RTKLIB 仅支持固定的阈值，而在 demo5 改进版本中，能够支持自适应 Ratio 。
 
 $\begin{equation}
 R = \frac{(\stackrel{\smile}{N}_2 - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N}_2 - \hat{N})}{(\stackrel{\smile}{N} - \hat{N})^T Q_N^{-1} (\stackrel{\smile}{N} - \hat{N})} > R_{thres} \tag{E.7.18}
