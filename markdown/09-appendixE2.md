@@ -188,19 +188,27 @@ $\begin{equation}
 \end{equation}$
 
 $\begin{equation}
-\sigma^2 = F^s R_r \left(a_\sigma^2 + b_\sigma^2 / \sin El_r^s \right)^2 + \sigma_{eph}^2 + \sigma_{ion}^2 + \sigma_{trop}^2 + \sigma_{bias}^2 \tag{E.6.24}
+\sigma^2 = {F^s}^2 R_r^2 \left(a_\sigma^2 + b_\sigma^2 / \sin El_r^s \right) + \sigma_{eph}^2 + \sigma_{ion}^2 + \sigma_{trop}^2 + \sigma_{bias}^2 \tag{E.6.24}
 \end{equation}$
 
 其中：
 
 $F^s$：卫星系统误差因子<br>
 （1: GPS, Galileo, QZSS和Beidou, 1.5: GLONASS, 3.0: SBAS）<br>
-$R_r$：码/载波相位误差比率<br>
+$R_r$：码/载波相位误差比率，伪距定位和载波相位定位使用的是同样的加权公式，这里以载波相位为基础，然后通过系数转换到了伪距上<br>
 $a_\sigma, b_\sigma$：载波相位误差因子 $a$ 和 $b$（m）<br>
 $\sigma_{eph}$：星历和钟差标准差（m）<br>
 $\sigma_{ion}$：电离层校正模型误差标准差（m）<br>
 $\sigma_{trop}$：对流层校正模型误差标准差（m）<br>
 $\sigma_{bias}$：码偏差误差标准差（m）
+
+::: info 手册与代码中权计算的差异
+RTKLIB代码中是这样的：<br>
+```c
+// var = fact^2*R^2*(a^2 + (b^2/sin(el) + c^2*(10^(0.1*(snr_max-snr_rover)))) + (d*rcv_std)^2)
+```
+注意，这里的$R$和$F^s$都需要带上平方，手册中并没有很好的说明这一点，另外代码中还包含SNR的部分。
+::: 
 
 对于星历和钟差的标准差，RTKLIB中使用了URA（用户测距精度）或类似的指标。通过几次迭代，通常情况下解会收敛，并获得估计的接收机位置 $\hat{\mathbf{r}}_r$ 和接收机钟差 $\hat{d}t_r$ 。
 
