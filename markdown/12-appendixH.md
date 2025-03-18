@@ -164,7 +164,7 @@ function satno2id(sat) {
     const satMin = offset + 1;
     const satMax = offset + (max - min + 1);
     if (sat >= satMin && sat <= satMax) {
-      const prn = min + (sat - offset - 1);
+      const prn = 1 + (sat - offset - 1);
       if (sys === 'SBS') return prn.toString().padStart(3, '0');
       return `${code}${prn.toString().padStart(2, '0')}`;
     }
