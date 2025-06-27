@@ -431,16 +431,16 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>Positioning Mode（定位模式）</td>
       <td>
         设置定位模式<br>
-        - **Single**: SPP 或 SBAS DGPS<br>
-        - **DGPS/DGNSS**: 伪距差分<br>
-        - **Static**: 载波相位静态定位（RTK静态）<br>
-        - **Static-start**: 静止启动，先Static模式，后Kinematic模式<br>
-        - **Kinematic**: 载波相位动态定位（RTK动态）<br>
-        - **Moving-Base**: 动基线模式（用于双天线定姿）<br>
-        - **Fixed**: 流动站接收机固定坐标，解算模糊度、对流层、电离层等参数 \*<br>
-        - **PPP Kinematic**: 动态精密单点定位<br>
-        - **PPP Static**: 静态精密单点定位<br>
-        - **PPP Fixed**: PPP 固定坐标，解算模糊度、对流层、电离层等参数 \*
+        - Single: SPP 或 SBAS DGPS<br>
+        - DGPS/DGNSS: 伪距差分<br>
+        - Static: 载波相位静态定位（RTK静态）<br>
+        - Static-start: 静止启动，先Static模式，后Kinematic模式<br>
+        - Kinematic: 载波相位动态定位（RTK动态）<br>
+        - Moving-Base: 动基线模式（用于双天线定姿）<br>
+        - Fixed: 流动站接收机固定坐标，解算模糊度、对流层、电离层等参数 \*<br>
+        - PPP Kinematic: 动态精密单点定位<br>
+        - PPP Static: 静态精密单点定位<br>
+        - PPP Fixed: PPP 固定坐标，解算模糊度、对流层、电离层等参数 \*
       </td>
       <td>pos1-posmode</td>
       <td>*<br>用于残差分析</td>
@@ -449,10 +449,10 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>Frequencies（频段）</td>
       <td>
         设置载波频段<br>
-        - **L1**: L1 单频: L1,R1,E1,B1<br>
-        - **L1+L2**: L1 和 L2 双频: L1/L2, R1/R2, E1/E5b, B1/B2<br>
-        - **L1+L2+L5**: L1, L2 和 L5 三频 L1/L2/L5, R1/R2, E1/E5b/E5a, B1/B2<br>
-        - **L1+L2+L5+L6**: 用于实验测试, 并全支持<br>
+        - L1: L1 单频: L1,R1,E1,B1<br>
+        - L1+L2: L1 和 L2 双频: L1/L2, R1/R2, E1/E5b, B1/B2<br>
+        - L1+L2+L5: L1, L2 和 L5 三频 L1/L2/L5, R1/R2, E1/E5b/E5a, B1/B2<br>
+        - L1+L2+L5+L6: 用于实验测试, 并全支持<br>
       </td>
       <td>pos1-frequency</td>
       <td>Single, PPP-\* 不支持</td>
@@ -461,10 +461,10 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>滤波类型</td>
       <td>
         设置滤波类型<br>
-        - **Forward**: 前向滤波<br>
-        - **Backward**: 后向滤波 *<br>
-        - **Combined**: 前向与后向组合滤波 \*, 相位偏置会在前向、后向解间重置。<br>
-        - **Combined–no phase reset**: 前向与后向组合滤波 \*, 相位偏置不会在前向、后向解间重置。<br>
+        - Forward: 前向滤波<br>
+        - Backward: 后向滤波 *<br>
+        - Combined: 前向与后向组合滤波 \*, 相位偏置会在前向、后向解间重置。<br>
+        - Combined–no phase reset: 前向与后向组合滤波 \*, 相位偏置不会在前向、后向解间重置。<br>
       </td>
       <td>pos1-soltype</td>
       <td>
@@ -499,8 +499,8 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>Rec Dynamics</td>
       <td>
         将流动站接收机设置为动态模式。<br>
-        - **OFF**: 不启用动态模式<br>
-        - **ON**: 将使用接收机的速度和加速度用于预测。<br>
+        - OFF: 不启用动态模式<br>
+        - ON: 将使用接收机的速度和加速度用于预测。<br>
         利用估计的速度和加速度预测接收机位置。<br>
       </td>
       <td>pos1-dynamics</td>
@@ -510,9 +510,9 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>Earth Tides Correction</td>
       <td>
         设置是否应用地球潮汐校正<br>
-        - **OFF**：不应用地球潮汐校正<br>
-        - **Solid**：应用固体地球潮汐校正<br>
-        - **Solid/OTL**：应用固体地球潮汐、OTL（海洋潮汐负载）和极潮校正。\*<br>
+        - OFF：不应用地球潮汐校正<br>
+        - Solid：应用固体地球潮汐校正<br>
+        - Solid/OTL：应用固体地球潮汐、OTL（海洋潮汐负载）和极潮校正。\*<br>
         要应用OTL校正，请在“Files”选项卡中的“Ocean Loading BLQ Format”中设置OTL系数文件路径，标记名称必须包含在输入的RINEX文件中，以便在BLQ文件中选择站点。<br>
         要应用极潮，请在“Files”菜单的“EOP Data Files”选项中设置ERP（地球自转参数）文件路径。
       </td>
@@ -523,14 +523,14 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST输入标准RINEX文件如3.0
       <td>Ionosphere Correction</td>
       <td>
         设置电离层校正选项。如果设置了该参数，则会为每颗卫星估计垂直电离层延迟。对于长基线情形，电离层估计可以有效抑制电离层延迟的影响。<br>
-        - **OFF**：不应用电离层校正<br>
-        - **Broadcast**：应用广播电离层模型<br>
-        - **SBAS**：应用SBAS电离层模型<br>
-        - **Iono-Free LC**：使用双频（GPS/GLONASS/QZSS的L1-L2或Galileo的L1-L5）测量的无电离层线性组合进行电离层校正<br>
-        - **Estimate STEC**：估计电离层参数STEC（倾斜总电子含量）\*<br>
-        - **IONEX TEC**：使用IONEX TEC网格数据<br>
-        - **QZSS Broadcast**：应用QZSS提供的广播电离层模型<br>
-        - **QZSS LEX**：（保留）
+        - OFF：不应用电离层校正<br>
+        - Broadcast：应用广播电离层模型<br>
+        - SBAS：应用SBAS电离层模型<br>
+        - Iono-Free LC：使用双频（GPS/GLONASS/QZSS的L1-L2或Galileo的L1-L5）测量的无电离层线性组合进行电离层校正<br>
+        - Estimate STEC：估计电离层参数STEC（倾斜总电子含量）\*<br>
+        - IONEX TEC：使用IONEX TEC网格数据<br>
+        - QZSS Broadcast：应用QZSS提供的广播电离层模型<br>
+        - QZSS LEX：（保留）
       </td>
       <td>pos1-ionoopt</td>
       <td>\*不适用于Single模式和PPP-\*模式</td>
@@ -991,7 +991,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
   </thead>
   <tbody>
     <tr>
-      <td colspan="4">**Measurement Errors**</td>
+      <td colspan="4">Measurement Errors</td>
     </tr>
     <tr>
       <td>Code/CarrierPhase Error Rate L1/L2/L5</td>
@@ -1047,7 +1047,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td>默认值：1</td>
     </tr>
     <tr>
-      <td colspan="4">**Process Noises**</td>
+      <td colspan="4">Process Noises</td>
     </tr>
     <tr>
       <td>Receiver Accel Horiz/Vertical</td>
@@ -1136,7 +1136,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td></td>
     </tr>
     <tr>
-      <td colspan="4">**Base Station**</td>
+      <td colspan="4">Base Station</td>
     </tr>
     <tr>
       <td>Lat/Lon/Height (deg/m)</td>
