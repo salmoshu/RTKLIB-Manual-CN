@@ -16,7 +16,7 @@ RTKLIB根据以下BSD 2条款许可证<sup>[40]</sup>和另外两个独家条款
 
 注：在2.4.1版本之前，RTKLIB的早期版本是在GPLv3<sup>[59]</sup>许可证下分发的。
 
-```License
+```txt
 The RTKLIB software package is distributed under the following BSD 2-clause
 license. Users are permitted to develop, produce or sell their own non-
 commercial or commercial products utilizing, linking or including RTKLIB as long

@@ -4,7 +4,7 @@ sidebarDepth: 2
 
 # 1. 简介
 
-本文档翻译自Tim Everett（rtkexplorer）维护的最新RTKLIB手册：[manual_demo5](https://rtkexplorer.com/pdfs/manual_demo5.pdf)
+本文档翻译自Tim Everett（rtkexplorer）维护的最新版本RTKLIB手册：[manual_demo5](https://rtkexplorer.com/pdfs/manual_demo5.pdf)，该文档并非完全直译，对于其中一些无效或冗余的内容，将直接重述或舍弃。
 
 RTKLIB是一个用于全球导航卫星系统（GNSS）标准定位和精密定位的开源项目，由日本东京海洋大学的高须知二（Tomoji Takasu）开发。它由一个核心程序库和多个命令行程序与界面程序组成。RTKLIB具有以下特点：
 
