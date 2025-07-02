@@ -205,20 +205,26 @@ convbin [-ts y/m/d h:m:s] [-te y/m/d h:m:s] [-ti tint] [-r format] [-ro opts]
 **描述**
 
 将RTCM、接收机原始数据日志和RINEX文件转换为RINEX和SBAS/LEX消息文件。SBAS消息文件符合RTKLIB SBAS/LEX消息格式。它支持以下消息或文件：<br>
-RTCM 2 : 类型 1, 3, 9, 14, 16, 17, 18, 19, 22<br>
-RTCM 3 : 类型 1002, 1004, 1005, 1006, 1010, 1012, 1019, 1020 类型 1071-1127（MSM，不包括紧凑消息）<br>
-NovAtel OEMV/4/6,OEMStar: RANGECMPB, RANGEB, RAWEPHEMB, IONUTCB, RAWWASSFRAMEB<br>
-Swiftnav :<br>
-Septentrio :<br>
-u-blox M8T/F9P : RXM-RAW, RXM-SFRB, RXM-RAWX<br>
-Hemisphere : BIN76, BIN80, BIN94, BIN95, BIN96<br>
-SkyTraq S1315F : msg0xDD, msg0xE0, msg0xDC<br>
-GW10 : msg0x08, msg0x03, msg0x27, msg0x20<br>
-Javad : [R*],[r*],[R],[r],[P],[p],[*P],[p],[D],[d],[E],[E],[F],[TC],[GE],[NE],[EN],[QE],[UO],[IO],[WD]<br>
-NVS : NVS NV08C BINR<br>
-BINEX : 大端序，常规CRC，前向记录（0xE2）<br>
-0x01-01,0x01-02,0x01-03,0x01-04,0x01-06,0x7f-05<br>
-RINEX : OBS, NAV, GNAV, HNAV, LNAV, QNAV
+
+```shell
+RTCM 2            : Type 1, 3, 9, 14, 16, 17, 18, 19, 22
+RTCM 3            : Type 1002, 1004, 1005, 1006, 1010, 1012, 1019, 1020
+                    Type 1071-1127（MSM，不包括紧凑消息）
+NovAtel OEMV/4/6,OEMStar : RANGECMPB, RANGEB, RAWEPHEMB, IONUTCB, RAWWASSFRAMEB
+Swiftnav          :
+Septentrio        :
+u-blox M8T/F9P    : RXM-RAW, RXM-SFRB, RXM-RAWX
+Hemisphere        : BIN76, BIN80, BIN94, BIN95, BIN96
+SkyTraq S1315F    : msg0xDD, msg0xE0, msg0xDC
+GW10              : msg0x08, msg0x03, msg0x27, msg0x20
+Javad             : [R*],[r*],[*R],[*r],[P*],[p*],[*P],[*p],[D*],[*d],
+                    [E*],[*E],[F*],[TC],[GE],[NE],[EN],[QE],[UO],[IO],
+                    [WD]
+NVS               : NVS NV08C BINR
+BINEX             : 大端序，常规CRC，前向记录（0xE2）
+                    0x01-01,0x01-02,0x01-03,0x01-04,0x01-06,0x7f-05
+RINEX             : OBS, NAV, GNAV, HNAV, LNAV, QNAV
+```
 
 **选项**
 
@@ -279,17 +285,21 @@ file         输入接收机二进制日志文件
 -trace level 输出跟踪级别 [关闭]
 ```
 
-如果指定了任何输出文件，则使用默认输出文件（`<file>.obs`, `<file>.nav`, `<file>.gnav`, `<file>.hnav`, `<file>.qnav`, `<file>.lnav` 和 `<file>.sbs`）。<br>
-如果未指定接收机类型，则根据输入文件扩展名识别类型，如下所示：<br>
-*.rtcm2 RTCM 2<br>
-*.rtcm3 RTCM 3<br>
-*.gps NovAtel OEMV/4/6,OEMStar<br>
-*.ubx u-blox LEA-4T/5T/6T/8T/8/9<br>
-*.bin Hemisphere Eclipse/Crescent<br>
-*.stq SkyTraq S1315F<br>
-*.jps Javad<br>
-*.bnx,*binex BINEX<br>
-.obs,.*o RINEX OBS
+如果指定了任何输出文件，则使用默认输出文件（`<file>.obs`, `<file>.nav`, `<file>.gnav`, `<file>.hnav`, `<file>.qnav`, `<file>.lnav` 和 `<file>.sbs`）。
+
+如果未指定接收机类型，则根据输入文件扩展名识别类型，如下所示：
+
+```shell
+*.rtcm2 RTCM 2
+*.rtcm3 RTCM 3
+*.gps NovAtel OEMV/4/6,OEMStar
+*.ubx u-blox LEA-4T/5T/6T/8T/8/9
+*.bin Hemisphere Eclipse/Crescent
+*.stq SkyTraq S1315F
+*.jps Javad
+*.bnx,*binex BINEX
+*.obs,.*o RINEX OBS
+```
 
 ## A.5 STR2STR
 

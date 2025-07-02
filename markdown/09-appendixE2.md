@@ -148,7 +148,7 @@ $\begin{equation}
 \mathbf{y} = (P_r^1, P_r^2, P_r^3, \ldots, P_r^m)^T \tag{E.6.20}
 \end{equation}$
 
-其中 $P_r^s$ 是伪距测量。如果配置选项"Ionosphere Correction"设置为"Iono-Free LC"，则使用附录 [E.5(5.7)](/algorithm/RTKLIB手册/09-appendixE1#_5-7-无电离层组合-线性组合) 中定义的无电离层组合（线性组合）伪距。其他情况下，则仅使用 $L_1$ 伪距。
+其中 $P_r^s$ 是伪距测量。如果配置选项"Ionosphere Correction"设置为"Iono-Free LC"，则使用附录 [E.5(5.7)](/algorithm/RTKLIB-Manual-CN/09-appendixE1#_5-7-无电离层组合-线性组合) 中定义的无电离层组合（线性组合）伪距。其他情况下，则仅使用 $L_1$ 伪距。
 
 ![ Satellite Geometry for Single Point Positioning](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250220-204634.jpg)
 <p style="text-align: center;">图E.6-1 单点定位的卫星几何结构</p> 
