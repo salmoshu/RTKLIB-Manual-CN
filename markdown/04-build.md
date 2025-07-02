@@ -77,7 +77,7 @@ RTKLIB提供了以下可从用户应用程序调用的通用C函数。用户可�
 
 2.&nbsp;设置以下编译器选项，将RTKLIB源代码目录路径添加到编译器的包含路径中。
 ```shell
--I rtklib_<版本>\src
+-I rtklib_<ver>\src
 ```
 
 3.&nbsp;将必要的RTKLIB库源文件添加到用于构建应用程序的源程序集中。关于库函数列表和RTKLIB提供的源程序，参考附录C库API。
