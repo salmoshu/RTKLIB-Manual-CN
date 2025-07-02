@@ -4,7 +4,9 @@
 
 可以按下RTKNAVI或RTKPOST的主窗口中的 <span style="border: 1px solid black; padding: 3px;">Options...</span> 来设置配置参数。可操作的定位参数如下。通过按下对话框上的 <span style="border: 1px solid black; padding: 3px;">Save...</span> 按钮并选择文件路径，可以将这些选项保存到配置文件中。通过按下 <span style="border: 1px solid black; padding: 3px;">Load...</span> 按钮并选择配置文件，从而在配置文件中加载选项。配置参数的更多信息请请参考B.4。下表还显示了可以包含在配置文件中的关键字。这些选项中指定的模型也在附录E中进行了详细解释。
 
-（1） Setting1
+另外demo5作者提供了一份常用的配置参数使用说明，参考附录F。
+
+### 3.5.1 Setting1
 <table style="text-align: left;">
   <thead>
     <tr>
@@ -25,10 +27,10 @@
         - Static-start: 静止启动，先Static模式，后Kinematic模式<br>
         - Kinematic: 载波相位动态定位（RTK动态）<br>
         - Moving-Base: 动基线模式（用于双天线定姿）<br>
-        - Fixed: 流动站接收机固定坐标，解算模糊度、对流层、电离层等参数 \*<br>
+        - Fixed: 流动站接收机固定坐标，解算模糊度、对流层、电离层等参数 *<br>
         - PPP Kinematic: 动态精密单点定位<br>
         - PPP Static: 静态精密单点定位<br>
-        - PPP Fixed: PPP 固定坐标，解算模糊度、对流层、电离层等参数 \*
+        - PPP Fixed: PPP 固定坐标，解算模糊度、对流层、电离层等参数 *
       </td>
       <td>pos1-posmode</td>
       <td>*<br>用于残差分析</td>
@@ -43,7 +45,7 @@
         - L1+L2+L5+L6: 用于实验测试, 并全支持<br>
       </td>
       <td>pos1-frequency</td>
-      <td>Single, PPP-\* 不支持</td>
+      <td>Single, PPP-* 不支持</td>
     </tr>
     <tr>
       <td>滤波类型</td>
@@ -51,8 +53,8 @@
         设置滤波类型<br>
         - Forward: 前向滤波<br>
         - Backward: 后向滤波 *<br>
-        - Combined: 前向与后向组合滤波 \*, 相位偏置会在前向、后向解间重置。<br>
-        - Combined–no phase reset: 前向与后向组合滤波 \*, 相位偏置不会在前向、后向解间重置。<br>
+        - Combined: 前向与后向组合滤波 *, 相位偏置会在前向、后向解间重置。<br>
+        - Combined–no phase reset: 前向与后向组合滤波 *, 相位偏置不会在前向、后向解间重置。<br>
       </td>
       <td>pos1-soltype</td>
       <td>
@@ -70,7 +72,7 @@
     <tr>
       <td>Elevation Mask</td>
       <td>
-        设置截止 SNR 阈值. 点击 <span style="border: 1px solid black; padding: 3px;">...</span> 按钮即可看到 "SNR Mask" 对话框. 可以在每 5 ° 的仰角区间设置 SNR 截止阈值，如何 "Rover" 和 "Base Station" 复选框没有选中，那么 SNR MASK 将不会应用。
+        设置截止 SNR 阈值. 点击 <span style="border: 1px solid black; padding: 3px;">...</span> 按钮即可看到 "SNR Mask" 对话框. 可以在每 5 ° 的仰角区间设置 SNR 截止阈值，如果 "Rover" 和 "Base Station" 复选框没有选中，那么 SNR MASK 将不会生效。
       </td>
       <td>
         pos1-<br>
@@ -88,7 +90,7 @@
       <td>
         将流动站接收机设置为动态模式。<br>
         - OFF: 不启用动态模式<br>
-        - ON: 将使用接收机的速度和加速度用于预测。<br>
+        - ON: 将估计接收机的速度和加速度。<br>
         利用估计的速度和加速度预测接收机位置。<br>
       </td>
       <td>pos1-dynamics</td>
@@ -100,12 +102,12 @@
         设置是否应用地球潮汐校正<br>
         - OFF：不应用地球潮汐校正<br>
         - Solid：应用固体地球潮汐校正<br>
-        - Solid/OTL：应用固体地球潮汐、OTL（海洋潮汐负载）和极潮校正。\*<br>
+        - Solid/OTL：应用固体地球潮汐、OTL（海洋潮汐负载）和极潮校正。*<br>
         要应用OTL校正，请在“Files”选项卡中的“Ocean Loading BLQ Format”中设置OTL系数文件路径，标记名称必须包含在输入的RINEX文件中，以便在BLQ文件中选择站点。<br>
         要应用极潮，请在“Files”菜单的“EOP Data Files”选项中设置ERP（地球自转参数）文件路径。
       </td>
       <td>pos1-tidecorr</td>
-      <td>不适用于Single模式，\*不适用于RTKNAVI模式</td>
+      <td>不适用于Single模式，*不适用于RTKNAVI模式</td>
     </tr>
     <tr>
       <td>Ionosphere Correction</td>
@@ -115,13 +117,13 @@
         - Broadcast：应用广播电离层模型<br>
         - SBAS：应用SBAS电离层模型<br>
         - Iono-Free LC：使用双频（GPS/GLONASS/QZSS的L1-L2或Galileo的L1-L5）测量的无电离层线性组合进行电离层校正<br>
-        - Estimate STEC：估计电离层参数STEC（倾斜总电子含量）\*<br>
+        - Estimate STEC：估计电离层参数STEC（倾斜总电子含量）*<br>
         - IONEX TEC：使用IONEX TEC网格数据<br>
         - QZSS Broadcast：应用QZSS提供的广播电离层模型<br>
         - QZSS LEX：（保留）
       </td>
       <td>pos1-ionoopt</td>
-      <td>\*不适用于Single模式和PPP-\*模式</td>
+      <td>*不适用于Single模式和PPP-*模式</td>
     </tr>
     <tr>
       <td>Troposphere Correction</td>
@@ -130,8 +132,8 @@
         - OFF：不应用对流层校正<br>
         - Saastamoinen：应用Saastamoien模型<br>
         - SBAS：应用SBAS对流层模型（MOPS）<br>
-        - Estimate ZTD：估计ZTD（天顶总延迟）参数为EKF状态\*<br>
-        - Estimate ZTD+Grad：估计ZTD和水平梯度参数为EKF状态\*
+        - Estimate ZTD：估计ZTD（天顶总延迟）参数为EKF状态*<br>
+        - Estimate ZTD+Grad：估计ZTD和水平梯度参数为EKF状态*
       </td>
       <td>pos1-tropopt</td>
       <td>*不应用于Single模式</td>
@@ -139,12 +141,12 @@
     <tr>
       <td>Satellite Ephemeris/Clock</td>
       <td>
-        设置卫星星历的类型。
-        - Broadcast：使用广播星历
-        - Precise：使用精密星历\*
-        - Broadcast+SBAS：具有SBAS长期快速校正功能的广播星历
-        - Broadcast+SSR APC：带RTCM SSR校正的广播星历（天线相位中心值）
-        - Broadcast+SSR CoM：使用RTCM SSR校正（卫星质心值）的广播星历
+        设置卫星星历的类型。 <br>
+        - Broadcast：使用广播星历 <br>
+        - Precise：使用精密星历* <br>
+        - Broadcast+SBAS：具有SBAS长期快速校正功能的广播星历 <br>
+        - Broadcast+SSR APC：带RTCM SSR校正的广播星历（天线相位中心值） <br>
+        - Broadcast+SSR CoM：使用RTCM SSR校正（卫星质心值）的广播星历 <br>
         - QZSS LEX：（保留）
       </td>
       <td>pos1-sateph</td>
@@ -168,17 +170,17 @@
     </tr>
     <tr>
       <td>PhWindup</td>
-      <td>设置是否应用PPP模式的相位饱和校正。</td>
+      <td>设置是否对PPP模式应用相位缠绕修正。</td>
       <td>pos1-posopt3</td>
-      <td>仅适用于PPP-\*模式。</td>
+      <td>仅适用于PPP-*模式。</td>
     </tr>
     <tr>
       <td>Reject Ecl</td>
       <td>
-        设置是否排除处于日食状态的GPS Block IIA卫星。处于日食状态的Block IIA卫星常常由于偏航姿态的不可预测行为而降低PPP解的质量。
+        设置是否排除处于日食状态的GPS Block IIA卫星。由于偏航姿态的不可预测行为，处于日食状态的Block IIA卫星通常会降低PPP解算的精度。
       </td>
       <td>pos1-posopt4</td>
-      <td>仅适用于PPP-\*模式。</td>
+      <td>仅适用于PPP-*模式。</td>
     </tr>
     <tr>
       <td>RAIM FDE</td>
@@ -192,12 +194,12 @@
       <td>DBCorr</td>
       <td>日界时钟跳变修正</td>
       <td>pos1-posopt6</td>
-      <td>仅适用于PPP-\*模式。</td>
+      <td>仅适用于PPP-*模式。</td>
     </tr>
     <tr>
       <td>Excluded Satellites (+PRN: Included)</td>
       <td>
-        设置定位时排除的卫星。输入以空格分隔的卫星PRN编号。对于GLONASS、Galileo、QZSS、北斗和SBAS，分别使用Rnn、Enn、Jnn、Cnn和Snn（nn：卫星PRN或槽号）.如果在卫星ID前加上“+”，即使卫星状态不佳，该卫星也会被包括在定位中。
+        设置定位时排除的卫星。输入以空格分隔的卫星PRN编号。对于GLONASS、Galileo、QZSS、北斗和SBAS，分别使用Rnn、Enn、Jnn、Cnn和Snn（nn：卫星PRN或槽号）。如果在卫星ID前加上“+”，表示即使卫星状态不佳，该卫星也会被包括在定位中。
       </td>
       <td>pos1-exclsats</td>
       <td></td>
@@ -222,7 +224,7 @@
 
 ![SNR Mask Dialog of RTKNAVI and RTKPOST Options](https://i.ibb.co/xg0740L/image.png)
 
-（2） Setting2
+### 3.5.2 Setting2
 <table>
   <thead>
     <tr>
@@ -238,15 +240,15 @@
       <td>
         为GPS和伽利略系统设置整数模糊度求解策略：<br>
         - OFF：不进行模糊度求解<br>
-        - Continuous：持续估计并求解静态整数模糊度 \*<br>
-        - Instantaneous：按历元逐个估计并求解整数模糊度 \*<br>
-        - Fix and Hold：持续估计并求解静态整数模糊度。如果验证通过，模糊度将被约束为求解值 \*<br>
+        - Continuous：持续估计并求解静态整数模糊度 *<br>
+        - Instantaneous：按历元逐个估计并求解整数模糊度 *<br>
+        - Fix and Hold：持续估计并解算静态整数模糊度。如果验证通过，则将模糊度约束为已解算的值。 *<br>
         - PPP-AR：不支持
       </td>
       <td>pos2-armode</td>
       <td>
         默认值：Continuous不适用于Single模式。<br>
-        \*仅适用于Kinematic, Static, Movingbaseline 和 Fixed模式。
+        *仅适用于Kinematic, Static, Movingbaseline 和 Fixed模式。
       </td>
     </tr>
     <tr>
@@ -255,8 +257,8 @@
         为GLONASS设置整数模糊度求解策略：<br>
         - OFF：不固定模糊度。<br>
         - ON：固定模糊度。通常只有相同类型的接收机对（流动站和基准站）的模糊度才能被固定。如果不同类型的接收机存在IFB（频间偏差），则无法通过双差消除。<br>
-        - Fix and Hold：在首次固定并保持GPS卫星后消除IF偏差。<br>
-        - Autocal：接收机IF偏差自动校准，但需要合理的初始估计（参见GLONASS硬件偏差）。
+        - Fix and Hold：在首次对GPS卫星完成固定并保持操作后，消除IF偏差。<br>
+        - Autocal：接收机的IF偏差会自动校准，但需要较为准确的初始估计值（参见GLONASS硬件偏差）。。
       </td>
       <td>pos2-gloarmode</td>
       <td>
@@ -273,8 +275,8 @@
     <tr>
       <td>模糊度固定比率（Min/Norm/Max）</td>
       <td>
-        - 设置“ratio-test”的整数模糊度检验阈值，使用最佳整数向量与次佳向量的平方残差之比。<br>
-        - 如果最小值和最大值设置为等于标称值，则比率是固定的，否则比率将根据卫星的数量进行调整。标称值用于8个卫星对，并且随着卫星数量的增加而降低，随着卫星数量的减少而增加。
+        - 设置用于“ratio-test”的整数模糊度验证阈值，该检验使用最佳整数向量与次佳向量的残差平方比。<br>
+        - 如果最小值和最大值被设置为等于标称值，则比率是固定的；否则，比率将根据卫星数量进行调整。标称值适用于8对卫星，随着卫星数量的增加，该值会降低，而随着卫星数量的减少，该值会提高。
       </td>
       <td>
         pos2-arthresmin<br>
@@ -286,7 +288,7 @@
     <tr>
       <td>GLO HW Bias</td>
       <td>
-        设置GLONASS相对硬件偏差，单位为米每频率槽。仅在pos2-gloarmode设置为“autocal”时使用，用于指定两个不同接收机制造商之间的通道间偏差。
+        设置每频段的相对GLONASS硬件偏差（单位：m）。仅在pos2-gloarmode设置为“autocal”时使用，用于指定两个不同接收机制造商之间的通道间偏差。
       </td>
       <td>pos2-arthres2</td>
       <td>默认值：0.0</td>
@@ -294,7 +296,7 @@
     <tr>
       <td>Min Lock / Elevation to Fix Ambiguity</td>
       <td>
-        设置固定整数模糊度所需的最小锁定计数和最小仰角（°）。如果锁定计数或仰角小于该值，则该模糊度将被排除在固定的整数向量之外。
+        设置用于固定整数模糊度的最小锁定计数和最小仰角（单位：度）。如果锁定计数或仰角小于设定值，则该模糊度将从固定的整数向量中排除。
       </td>
       <td>pos2-arlockcnt,arelmask</td>
       <td>默认值：0，0</td>
@@ -308,8 +310,8 @@
     <tr>
       <td>Slip Threshs: Doppler (Hz) / Geom-Free (m)</td>
       <td>
-        设置多普勒和载波相位差之间的频率差的周跳检测阈值（Hz）（0 表示 禁用）<br>
-        设置无几何约束线性组合载波相位差之间的周跳检测阈值（m）。
+        设置多普勒频率与载波相位差分在历元间差异的周跳阈值（单位：Hz）（0表示禁用）<br>
+        设置无几何约束的长组合（LC）载波相位差分在历元间的周跳阈值（单位：m）。
       </td>
       <td>pos2-dopthres,pos2-slipthres</td>
       <td>默认值：0，0.05</td>
@@ -328,8 +330,7 @@
     <tr>
       <td>Reject Threshold of GDOP/Innov.</td>
       <td>
-        设置GDOP和卡尔曼滤波器新息的拒绝阈值（米）。如果GDOP或载波相位新息超过该值，则观测值将作为异常值从估计过程中排除。
-        新息阈值将乘以载波相位/伪距误差比，以生成伪距新息的阈值。
+        设置GDOP和卡尔曼滤波器新息的拒绝阈值（单位：m）。如果GDOP或载波相位新息超过该阈值，则将该观测值视为异常值并排除在估计过程之外。新息阈值会乘以载波相位/伪距误差比，以生成伪距新息的阈值。
       </td>
       <td>
         pos2-rejgdop,rejionno
@@ -347,7 +348,7 @@
     <tr>
       <td>Sync Solution</td>
       <td>
-        设置解决方案的时间同步模式：
+        设置解决方案的时间同步模式：<br>
         - OFF：最小延迟模式。解决方案在流动站数据输入后尽快输出。延迟的基准站或校正数据将被外推到流动站时间。<br>
         - ON：匹配解决方案模式。解决方案在流动站数据和基准站或校正数据都准备好后输出。解决方案时间可能会有一定的延迟，落后于流动站时间。
       </td>
@@ -411,7 +412,7 @@
   </tbody>
 </table>
 
-（3） Output
+### 3.5.3 Output
 
 ![Options Dialog (Output) of RTKNAVI and RTKPOST](https://i.ibb.co/qpY40zz/image.png)
 
@@ -567,7 +568,8 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
 (http://earth-info.nga.mil/GandG/wgs84/gravitymod/egm2008/egm08_wgs84.html)<br>
 *3 gsigeome.ver4 (http://vldb.gsi.go.jp/sokuchi/geoid/download/down.html)
 
-（4） Statistics
+### 3.5.4 Statistics
+
 <table>
   <thead>
     <tr>
@@ -579,7 +581,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
   </thead>
   <tbody>
     <tr>
-      <td colspan="4">Measurement Errors</td>
+      <td colspan="4"><strong>Measurement Errors</strong></td>
     </tr>
     <tr>
       <td>Code/CarrierPhase Error Rate L1/L2/L5</td>
@@ -635,7 +637,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td>默认值：1</td>
     </tr>
     <tr>
-      <td colspan="4">Process Noises</td>
+      <td colspan="4"><strong>Process Noises</strong></td>
     </tr>
     <tr>
       <td>Receiver Accel Horiz/Vertical</td>
@@ -676,7 +678,8 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
   </tbody>
 </table>
 
-（5） Positions
+### 3.5.5 Positions
+
 <table style="text-align: left;">
   <thead>
     <tr>
@@ -688,7 +691,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
   </thead>
   <tbody>
     <tr>
-      <td colspan="4">Rover</td>
+      <td colspan="4"><strong>Rover</strong></td>
     </tr>
     <tr>
       <td>Lat/Lon/Height (deg/m)</td>
@@ -724,7 +727,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td></td>
     </tr>
     <tr>
-      <td colspan="4">Base Station</td>
+      <td colspan="4"><strong>Base Station</strong></td>
     </tr>
     <tr>
       <td>Lat/Lon/Height (deg/m)</td>
@@ -754,7 +757,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td>Antenna Type</td>
       <td>
         选择基准站天线的类型。
-        要选择天线类型，请在“文件”中设置接收机天线PCV文件。如果使用“\*”，则天线类型和天线偏差将通过RINEX观测文件头中的天线信息（RTKPOST）或RTCM天线信息（RTKNAVI）来识别。
+        要选择天线类型，请在“文件”中设置接收机天线PCV文件。如果使用“*”，则天线类型和天线偏差将通过RINEX观测文件头中的天线信息（RTKPOST）或RTCM天线信息（RTKNAVI）来识别。
       </td>
       <td>ant2-anttype</td>
       <td></td>
@@ -794,7 +797,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
 
 ![Positions Dialog of RTKNAVI and RTKPOST Options](https://i.ibb.co/J2F8MLD/image.png)
 
-（6） Files
+### 3.5.6 Files
 
 ![Options Dialog (Files) of RTKNAVI and RTKPOST](https://i.ibb.co/4SwspFM/image.png)
 
@@ -873,7 +876,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
   </tbody>
 </table>
 
-(8) Misc (RTKNAVI)
+### 3.5.7 Misc (RTKNAVI)
 ![Options Dialog (Misc) of RTKNAVI](https://i.ibb.co/Zx3P2mW/image.png)
 
 <table>
@@ -995,7 +998,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
 (b) SpaceTrack: http://www.space-track.org
 
 
-(7) Misc (RTKPOST)
+### 3.5.8 Misc (RTKPOST)
 ![Options Dialog (Misc) of RTKPOST](https://i.ibb.co/0J2Jq8M/image.png)
 
 <table>
