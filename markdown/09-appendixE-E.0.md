@@ -97,7 +97,7 @@ sidebarDepth: 2
 <span class="align-colon">$\phi_{pw}$</span>
 ：相位缠绕效应（cycle）<br>
 <span class="align-colon">$dT_{rel}^s$</span>
-：卫星时钟的相对论改正/Trel<br>
+：卫星时钟的相对论改正<br>
 <span class="align-colon">$\boldsymbol{U}(t)$</span>
 ：t时刻ECI和ECEF的坐标系转换矩阵<br>
 <span class="align-colon">$\boldsymbol{R}_x(\theta)$</span>
@@ -109,7 +109,7 @@ sidebarDepth: 2
 <span class="align-colon">$()^{jk}$</span>
 ：卫星端，卫星j和k之间的单差<br>
 <span class="align-colon">$()_{rb}$</span>
-：地面端，基准站b和移动站/r之间的单差<br>
+：地面端，基准站b和移动站r之间的单差<br>
 <span class="align-colon">$Z_{T,r}$</span>
 ：对流层天顶总延迟（m）<br>
 <span class="align-colon">$Z_{H,r}$</span>

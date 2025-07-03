@@ -6,7 +6,7 @@ sidebarDepth: 2
 
 ## E.1 时间系统
 
-RTKLIB内部采用GPS时间进行GNSS数据处理和定位；UTC时间（协调世界时）是一个不连续时间，简而言之，它和GPS时间之间存在一个跳秒（或闰秒）的关系。GPS时间通常采用周数和周内秒来表示其起始历元为1980年1月6日00:00:00 UTC。但是对于double类型变量来说，其距离精度只有0.04米。因此，在实际运算时，RTKLIB调用C标准库中的时间结构体并定义了`gtime_t`类型：
+RTKLIB内部采用GPS时间进行GNSS数据处理和定位。UTC时间（协调世界时）是一个不连续时间，简而言之，它和GPS时间之间存在一个跳秒（或闰秒）的关系。GPS时间通常采用周数和周内秒来表示，其起始历元为1980年1月6日00:00:00 UTC。但是对于double类型变量来说，其距离精度只有0.04米（参考[E.1.6/Q1](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.1.html#e-1-6-常见问题)）。因此，在实际运算时，RTKLIB调用C标准库中的时间结构体并定义了`gtime_t`类型：
 
 ```c
 typedef struct {
@@ -15,7 +15,7 @@ typedef struct {
 } gtime_t;
 ```
 
-`time_t` 通常通过一个无符号的32位整数来实现，表示从1970年1月1日00:00:00开始的总秒数。由于整数位的长度限制，，`gtime_t` 无法处理1970年1月1日之前或2038年1月19日之后的时间。
+`time_t` 通常通过一个无符号的32位整数来实现，表示从1970年1月1日00:00:00开始的总秒数。由于整数位的长度限制，`gtime_t` 无法处理1970年1月1日之前或2038年1月19日之后的时间。
 
 `gtime_t` 中的`sec`字段用于存储小数秒。`sec`在距离上的分辨率为6.7×10⁻⁸米，足以满足GNSS高精度定位计算的需求。RTKLIB还提供了几个有用的API来处理`gtime_t`，包括加、减以及时间格式的转换。
 
@@ -63,7 +63,7 @@ typedef struct {
     <td class="tg-0pky">BDT</td>
     <td class="tg-0pky">连续</td>
     <td class="tg-0pky">2006年1月1日00:00:00 UTC</td>
-    <td class="tg-0pky">BDT比UTC快14秒，时间差被控制在100纳秒以内（模1秒）</td>
+    <td class="tg-0pky">BDT比GPST滞后14秒</td>
     <td class="tg-0pky">t<sub>BDT</sub>=t<sub>GPST</sub>-14</td>
   </tr>
 </tbody></table>
@@ -81,7 +81,7 @@ t_{GPST}=t_{UTC}+\Delta{t}_{LS} \tag{E.1.2}
  
 其中，$t_{UTC}$和$t_{GPST}$分别是以秒为单位的UTC时间和GPS时间。$\Delta{t}_{LS}$是由于自1980年1月6日以来累积的闰秒（或跳秒）导致的UTC与GPST之间的时间差（秒）。$\Delta{t}_{LS}$的值如表E.1-1所示。
 
-<p style="text-align: center;">表E.1-2 GPST-UTC值（截至2025年2月）</p>
+<p style="text-align: center;">表E.1-2 GPST-UTC值（截至2025年2月，未来可能更新）</p>
 
 ```text
 Time Since (in UTC)     𝛥𝑡𝐿𝑆 (s)
@@ -123,11 +123,17 @@ $\begin{equation}
 t_{UTC}=t_{GLONASST}-10800 \tag{E.1.4}
 \end{equation}$
 
-更准确地说，GLONASS导航信息中的GLONASST的UTC参数应类似于GPST（GPS时间）和UTC转换的方式使用。忽略闰秒和3小时的时差，GPST与GLONASST之间的差异通常为100纳秒或几个100纳秒的水平。
+更准确地说，GLONASS导航信息中的GLONASST的UTC参数应类似于GPST（GPS时间）和UTC转换的方式使用。忽略闰秒和3小时的时差，GLONASST与GPST的偏差通常在毫秒级，具体通过导航电文校正（GLONASS时间同步精度低于GPS）。
 
 ### E.1.3 GST (Galileo时间)
 
 伽利略系统时间（Galileo System Time，GST）与GPST类似，同样有周与周内秒组成。GST的起始历元为1999年8月22日00:00:00 UTC（这个时间刚好和GPS的起始时间1980年1月6日00:00:00 UTC相隔1024周）。在起始历元时，GST比UTC快13秒。GST是连续时间，不插入或删除闰秒。因此，GST与GPS时间（GPST）对齐，除了时间系统原点的1024周差异和一个小的时间偏移（Galileo/GPS时间差异，GGTO）。根据RINEX约定，伽利略周数与GPS周数相等。
+
+$\begin{equation}
+t_{GST} = t_{GPST} + GGTO + 1024×604800 \tag{E.1.5}
+\end{equation}$
+
+上述GGTO由伽利略导航电文提供。
 
 ### E.1.4 QZSST (QZSS时间)
 
@@ -138,7 +144,7 @@ QZSST（QZSS时间）与GPST（GPS时间）对齐。它与GPST具有相同的起
 北斗时间（BDT）也是一个连续时间系统（没有闰秒的插入或删除）。BDT的起始历元为2006年1月1日00:00:00 UTC。BDT与UTC之间的时间差被控制在100纳秒以内（模1秒）。因此，GPS时间（GPST）中的时间$𝑡_{𝐺𝑃𝑆}(s)$可以大致通过以下公式转换为BDT中的时间$𝑡_{BDT}(s)$，精度约为200纳秒：
 
 $\begin{equation}
-𝑡_{𝐵𝐷𝑇} = 𝑡_{𝐺𝑃𝑆} − 14 \tag{E.1.5}
+𝑡_{𝐵𝐷𝑇} = 𝑡_{𝐺𝑃𝑆} − 14 \tag{E.1.6}
 \end{equation}$
 
 BDT同样需要使用北斗导航信息中的UTC参数，然后进行类似GPST与UTC之间的转换。

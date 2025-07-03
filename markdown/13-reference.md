@@ -98,13 +98,3 @@ mapping function base on numerical weather model data, Geophysical Research Lett
 [72]  BIPM Bureau International des Poid et Mesures (http://www.bipm.org)  
 [73]  D. D. McCarthy, IERS Technical Note 21, IERS Conventions 1996, July 1996  
 [74]  G.Petit and B.Luzum (eds.), IERS Technical Note No.36, IERS Conventions (2010), 2010  
-
-<style>
-  .reference {
-    display: block;
-    margin-left: 20px;
-  }
-</style>
-
-<p class="reference">[67] X.-W. Chang, X. Yang, and T. Zhou, MLAMBDA: A modified LAMBDA method for integer least squares estimation, J. Geodesy, vol.79, 2005</p>
-<p class="reference">[68] J. Kouba, A guide to using International GNSS Service (IGS) products, May 2009</p>
