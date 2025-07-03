@@ -2,7 +2,7 @@
 
 ## 项目初衷
 
-RTKLIB提供的参考手册组织方式过于冗杂，至少我个人认为它谈不上特别有条理。项目维护在线文档：[RTKLIB手册中文版](https://salmoshu.github.io/algorithm/RTKLIB%E6%89%8B%E5%86%8C/01-overview.html)
+RTKLIB提供的参考手册组织方式过于冗杂，至少我个人认为它谈不上特别有条理。项目维护在线文档：[RTKLIB手册中文版](https://salmoshu.github.io/algorithm/RTKLIB-Manual-CN/01-overview.html)
 
 ## 项目目标
 
