@@ -186,7 +186,7 @@ pos2kml [option ...] file [...]
 -tu      输出UTC时间戳 [GPST]
 -i tint  输出时间间隔（秒）（0:全部） [0]
 -q qflg  输出质量标志（0:全部） [0]
--f n e h 向位置添加北/东/高偏移（米） [0 0 0]
+-f n e h 向位置添加北/东/高偏移（m） [0 0 0]
 -gpx     输出GPX文件
 ```
 
@@ -359,11 +359,11 @@ binex    : BINEX（仅输入）
 -c2 file       输出2命令文件 [无]
 -c3 file       输出3命令文件 [无]
 -c4 file       输出4命令文件 [无]
--p lat lon hgt 站点位置（纬度/经度/高度）（度，米）
--px x y z      站点位置（x/y/z-ECEF）（米）
+-p lat lon hgt 站点位置（纬度/经度/高度）（度，m）
+-px x y z      站点位置（x/y/z-ECEF）（m）
 -a antinfo     天线信息（用逗号分隔）
 -i rcvinfo     接收机信息（用逗号分隔）
--o e n u       天线偏移（东，北，上）（米）
+-o e n u       天线偏移（东，北，上）（m）
 -l local_dir   FTP/HTTP本地目录 []
 -x proxy_addr  HTTP/NTRIP代理地址 [无]
 -b str_no      将输出流的消息回传到输入流 [无]

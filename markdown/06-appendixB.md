@@ -76,13 +76,13 @@ sidebarDepth: 2
         <td>
             根据定位选项变化的流动站接收天线或标记位置的估计值。<br>
             +ddd.ddddddddd +ddd.dddddddd hhhh.hhhh ：<br>
-            纬度和经度（度）以及高度（米）。负值表示南纬或西经。高度根据定位选项表示为椭球高度或大地高度。<br>
+            纬度和经度（度）以及高度（m）。负值表示南纬或西经。高度根据定位选项表示为椭球高度或大地高度。<br>
             +ddd mm ss.sss +ddd mm ss.sss hhhh.hhhh ：<br>
-            纬度和经度（度、分、秒）以及高度（米）。<br>
+            纬度和经度（度、分、秒）以及高度（m）。<br>
             +xxxxxxxxx.xxxx +yyyyyyyyy.yyyy +zzzzzzzz.zzzz ：<br>
-            ECEF坐标系中的X/Y/Z分量（米）。<br>
+            ECEF坐标系中的X/Y/Z分量（m）。<br>
             +eeeeeeeee.eeee +nnnnnnnnn.nnnn +uuuuuuuuu.uuuu ：<br>
-            基线向量的E/N/U分量（米）。本地坐标系参考流动站位置。
+            基线向量的E/N/U分量（m）。本地坐标系参考流动站位置。
         </td>  
         <td></td>  
     </tr>
@@ -308,8 +308,8 @@ SBAS日志文件是RTKCONV的输出，这是一个文本文件，其中每一行
                 `$POS,week,tow,stat,posx,posy,posz,posxf,posyf,poszf` <br>
                 week/tow : GPS周号/周内时间（秒）<br>
                 stat : 解算状态<br>
-                posx/posy/posz : ECEF坐标系中的位置x/y/z（米，浮点数）<br>
-                posxf/posyf/poszf : ECEF坐标系中的位置x/y/z（米，固定解）
+                posx/posy/posz : ECEF坐标系中的位置x/y/z（m，浮点数）<br>
+                posxf/posyf/poszf : ECEF坐标系中的位置x/y/z（m，固定解）
             </td>
             <td></td>
         </tr>
@@ -321,10 +321,10 @@ SBAS日志文件是RTKCONV的输出，这是一个文本文件，其中每一行
                 `$VELACC,week,tow,stat,vele,veln,velu,acce,accn,accu,velef,velnf,veluf,accef,accnf,accuf`<br>
                 week/tow : GPS周号/周内时间（秒）<br>
                 stat : 解算状态<br>
-                vele/veln/velu : 速度东/北/上（米/秒，浮点数）<br>
-                acce/accn/accu : 加速度东/北/上（米/秒²，浮点数）<br>
-                velef/velnf/veluf : 速度东/北/上（米/秒，固定解）<br>
-                accef/accnf/accuf : 加速度东/北/上（米/秒²，固定解）
+                vele/veln/velu : 速度东/北/上（m/s，浮点数）<br>
+                acce/accn/accu : 加速度东/北/上（m/s²，浮点数）<br>
+                velef/velnf/veluf : 速度东/北/上（m/s，固定解）<br>
+                accef/accnf/accuf : 加速度东/北/上（m/s²，固定解）
             </td>
             <td></td>
         </tr>
@@ -354,8 +354,8 @@ SBAS日志文件是RTKCONV的输出，这是一个文本文件，其中每一行
                 stat : 解算状态<br>
                 sat : 卫星ID<br>
                 az/el : 方位角/仰角（度）<br>
-                ion : L1电离层延迟（米，浮点数）<br>
-                ion-fixed : L1电离层延迟（米，固定解）
+                ion : L1电离层延迟（m，浮点数）<br>
+                ion-fixed : L1电离层延迟（m，固定解）
             </td>
             <td></td>
         </tr>
@@ -368,8 +368,8 @@ SBAS日志文件是RTKCONV的输出，这是一个文本文件，其中每一行
                 week/tow : GPS周号/周内时间（秒）<br>
                 stat : 解算状态<br>
                 rcv : 接收机（1:流动站，2:基准站）<br>
-                ztd : 顶点总延迟（米，浮点数）<br>
-                ztdf : 顶点总延迟（米，固定解）
+                ztd : 顶点总延迟（m，浮点数）<br>
+                ztdf : 顶点总延迟（m，固定解）
             </td>
             <td></td>
         </tr>
@@ -396,8 +396,8 @@ SBAS日志文件是RTKCONV的输出，这是一个文本文件，其中每一行
                 week/tow : GPS周号/周内时间（秒）<br>
                 sat/frq : 卫星ID/频率（1:L1,2:L2,3:L5,...）<br>
                 az/el : 方位角/仰角（度）<br>
-                resp : 伪距残差（米）<br>
-                resc : 载波相位残差（米）<br>
+                resp : 伪距残差（m）<br>
+                resc : 载波相位残差（m）<br>
                 vsat : 有效数据标志（0:无效，1:有效）<br>
                 snr : 信号强度（dbHz）<br>
                 fix : 模糊度标志（0:无数据，1:不是AR集合的一部分，2:是AR集合的一部分，3:是保持集合的一部分）<br>

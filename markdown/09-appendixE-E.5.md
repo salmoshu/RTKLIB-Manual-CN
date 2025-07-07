@@ -65,7 +65,7 @@ $\begin{equation}
 \mathbf{p}_{ion} = (\alpha_0, \alpha_1, \alpha_2, \alpha_3, \beta_0, \beta_1, \beta_2, \beta_3)^T \tag{E.5.5}
 \end{equation}$
 
-通过使用这些电离层参数，可以按照以下过程推导出$L_1$电离层延迟$I_r^s$（米）。该模型通常称为Klobuchar模型。
+通过使用这些电离层参数，可以按照以下过程推导出$L_1$电离层延迟$I_r^s$（m）。该模型通常称为Klobuchar模型。
 
 $\begin{equation}
 \psi = 0.0137/(El + 0.11) - 0.022 \tag{E.5.6}
@@ -146,9 +146,9 @@ $\begin{equation}
 \lambda_{IPP} = \lambda_r + \arcsin\frac{\sin \alpha \sin A z_r^s}{\cos \phi_{IPP}} \tag{E.5.18b}
 \end{equation}$
 
-其中$R_E$是地球的半径（米），$H$是电离层壳体的高度（米）。RTKLIB通常使用$R_E = 6378137$和$H = 350000$。请注意，在该模型中，地球表面或电离层壳体被近似为一个球体。
+其中$R_E$是地球的半径（m），$H$是电离层壳体的高度（m）。RTKLIB通常使用$R_E = 6378137$和$H = 350000$。请注意，在该模型中，地球表面或电离层壳体被近似为一个球体。
 
-如果在IPP和时间$t$处给出了VTEC（垂直总电子含量）值$TEC(t, \phi_{IPP}, \lambda_{IPP})$，则$L_i$电离层延迟$I_{r,i}^s)（米）可以表示为：
+如果在IPP和时间$t$处给出了VTEC（垂直总电子含量）值$TEC(t, \phi_{IPP}, \lambda_{IPP})$，则$L_i$电离层延迟$I_{r,i}^s)（m）可以表示为：
 
 $\begin{equation}
 I_{r,i}^s = \frac{1}{\cos z'}\frac{40.3 \times 10^{16}}{f_i} TEC(t,\phi_{IPP},\lambda_{IPP}) \tag{E.5.19}

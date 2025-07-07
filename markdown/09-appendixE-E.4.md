@@ -238,7 +238,7 @@ $\begin{equation}
 
 其中：
 
-$\mathbf{r}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星位置（米）
+$\mathbf{r}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星位置（m）
 
 校正后的卫星时钟偏差 $dT^s(t)$ 在时间 $t$ 时通过SSR校正计算如下：
 
@@ -315,8 +315,8 @@ $\begin{equation}
 
 其中：
 
-$\mathbf{r}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星位置（米）<br>
-$\mathbf{v}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星速度（米/秒）
+$\mathbf{r}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星位置（m）<br>
+$\mathbf{v}^s_{\text{broadcast}}(t)$ : 由带IOD的广播星历在时间 $t$ 计算的卫星速度（m/s）
 
 卫星速度 $\mathbf{v}^s_{\text{broadcast}}(t)$ 通过以下微分近似计算，其中 $\Delta t = 0.001$（秒）。
 

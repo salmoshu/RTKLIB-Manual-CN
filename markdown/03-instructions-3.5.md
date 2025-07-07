@@ -1,6 +1,6 @@
 # 3. 操作指南
 
-## 3.5 RTKLIB配置参数
+## 3.5 RTKLIB 配置参数
 
 可以按下RTKNAVI或RTKPOST的主窗口中的 <span style="border: 1px solid black; padding: 3px;">Options...</span> 来设置配置参数。可操作的定位参数如下。通过按下对话框上的 <span style="border: 1px solid black; padding: 3px;">Save...</span> 按钮并选择文件路径，可以将这些选项保存到配置文件中。通过按下 <span style="border: 1px solid black; padding: 3px;">Load...</span> 按钮并选择配置文件，从而在配置文件中加载选项。配置参数的更多信息请请参考B.4。下表还显示了可以包含在配置文件中的关键字。这些选项中指定的模型也在附录E中进行了详细解释。
 
@@ -239,15 +239,16 @@
       <td>Integer Ambiguity Resolution (GPS)</td>
       <td>
         为GPS和伽利略系统设置整数模糊度求解策略：<br>
-        - OFF：不进行模糊度求解<br>
-        - Continuous：持续估计并求解静态整数模糊度 *<br>
-        - Instantaneous：按历元逐个估计并求解整数模糊度 *<br>
-        - Fix and Hold：持续估计并解算静态整数模糊度。如果验证通过，则将模糊度约束为已解算的值。 *<br>
-        - PPP-AR：不支持
+        - <strong>OFF</strong>：不进行模糊度求解<br>
+        - <strong>Continuous</strong>：持续估计并求解整数模糊度 *<br>
+        - <strong>Instantaneous</strong>：按历元逐个估计并求解整数模糊度 *<br>
+        - <strong>Fix and Hold</strong>：持续估计并解算整数模糊度。如果验证通过，则将模糊度约束为已解算的值。 *<br>
+        - <strong>PPP-AR</strong>：不支持 <br><br>
+        <strong>注意</strong>：原文"static integer ambiguities" 在此语境下更多是可能描述模糊度被固定为整数的特性，而非位置的静态性。
       </td>
       <td>pos2-armode</td>
       <td>
-        默认值：Continuous不适用于Single模式。<br>
+        Continuous不适用于Single模式。<br>
         *仅适用于Kinematic, Static, Movingbaseline 和 Fixed模式。
       </td>
     </tr>
@@ -296,7 +297,7 @@
     <tr>
       <td>Min Lock / Elevation to Fix Ambiguity</td>
       <td>
-        设置用于固定整数模糊度的最小锁定计数和最小仰角（单位：度）。如果锁定计数或仰角小于设定值，则该模糊度将从固定的整数向量中排除。
+        用于模糊度固定的最小锁定计数和最小仰角（单位：度）。如果锁定计数或仰角小于设定值，则该模糊度将从固定的整数向量中排除。
       </td>
       <td>pos2-arlockcnt,arelmask</td>
       <td>默认值：0，0</td>
@@ -320,7 +321,7 @@
       <td>Max Age of Diff / Outs to Reset Amb</td>
       <td>
         设置流动站和基准站之间的差分龄期的最大值（秒）。<br>
-        设置数据中断次数以重置模糊度。如果数据中断次数超过该值，则估计的模糊度将重置为初始值。
+        设置数据中断阈值。如果数据中断次数超过该值，则估计的模糊度将重置为初始值。
       </td>
       <td>
         pos2-maxage, pos2-aroutcnt
@@ -340,7 +341,7 @@
     <tr>
       <td># of Filter Iter</td>
       <td>
-        设置估计滤波器测量更新中的迭代次数。如果基线长度非常短，例如1米，迭代可能有助于处理测量方程的非线性。
+        设置估计滤波器测量更新中的迭代次数。如果基线长度非常短，例如1m，迭代可能有助于处理测量方程的非线性。
       </td>
       <td>pos2-niter</td>
       <td>默认值：1</td>
@@ -357,7 +358,7 @@
     </tr>
     <tr>
       <td>Baseline Length Constraint</td>
-      <td>如果处于移动基线模式，检查并设置基线长度的约束。填写约束的长度（米）和标准差（米）。</td>
+      <td>如果处于移动基线模式，检查并设置基线长度的约束。填写约束的长度（m）和标准差（m）。</td>
       <td>pos2-baselen,basesig</td>
       <td>默认值：0.0</td>
     </tr>
@@ -371,13 +372,13 @@
         Hold所需的最小模糊度数量
       </td>
       <td>
-        pos2-minfixsat, pos2-minholdsats
+        pos2-minfixsats, pos2-minholdsats
       </td>
       <td>默认值：4，5</td>
     </tr>
     <tr>
       <td>Min Drop Sats</td>
-      <td>每个历元从模糊度求解中排除单个卫星所需的最小模糊度数量</td>
+      <td>每个历元从模糊度求解中排除单颗卫星所需的最小模糊度数量</td>
       <td>pos2-mindropsats</td>
       <td>默认值：10</td>
     </tr>
@@ -399,7 +400,7 @@
     </tr>
     <tr>
       <td>Hold Amb Var</td>
-      <td>设置模糊度保持反馈的方差（作为模糊度跟踪增益的倒数）</td>
+      <td>设置模糊度Hold反馈的方差（对应EKF中R阵的对角线数值）</td>
       <td>pos2-varholdamb</td>
       <td>默认值：0.1</td>
     </tr>
@@ -436,7 +437,7 @@
         - NMEA0183：NMEA GPRMC、GPGGA、GPGSA、GLGSA、GAGSA、GPGSV、GLGSV和GAGSV
       </td>
       <td>out-solformat</td>
-      <td>主要应用于RTKNAVI，作为输出流设置</td>
+      <td>RTKNAVI的输出格式，主要从O按钮中设置</td>
     </tr>
     <tr>
       <td>Output Header</td>
@@ -587,7 +588,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td>Code/CarrierPhase Error Rate L1/L2/L5</td>
       <td>设置L1、L2和L5的伪距误差标准差与载波相位误差标准差的比率。</td>
       <td>
-        stat-seratio1,<br>
+        stats-eratio1,<br>
         eratio2,<br>
         eratio5
       </td>
@@ -596,13 +597,13 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
     <tr>
       <td>Carrier-Phase Error: a</td>
       <td>设置载波相位误差标准差的基准项（单位：m）。</td>
-      <td>stat-serrphase</td>
+      <td>stats-errphase</td>
       <td>默认值：0.003</td>
     </tr>
     <tr>
       <td>Carrier-Phase Error: b/sinEl</td>
       <td>设置载波相位误差标准差的仰角依赖项（单位：m/sin(el)）</td>
-      <td>stat-serrphaseel</td>
+      <td>stats-errphaseel</td>
       <td>默认值：0.003</td>
     </tr>
     <tr>
@@ -716,7 +717,7 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
     <tr>
       <td>Delta-E/N/U</td>
       <td>
-        设置流动站天线的偏差位置，作为天线参考点（ARP）相对于标记点的东/北/上偏移量（单位：米）。
+        设置流动站天线的偏差位置，作为天线参考点（ARP）相对于标记点的东/北/上偏移量（单位：m）。
       </td>
       <td>
         ant1-
