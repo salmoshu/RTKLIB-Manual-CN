@@ -274,7 +274,9 @@ $\begin{equation}
 \mathbf{r}_r^s = \mathbf{e}_r^{s^T} (\mathbf{v}^s(t^s) - \mathbf{v}_r) + \frac{\omega_e}{c} (v_y^s x_r + y^s v_{x,r} - v_x^s y_r - x^sv_{y,r}) \tag{E.6.29}
 \end{equation}$
 
-其中 $\mathbf{v}^s = (v_x^s, v_y^s, v_z^s)^T$ ， $\mathbf{v}_r = (v_{x,r}, v_{y,r}, v_{z,r})^T$ 。通过使用与位置估计类似的迭代最小二乘法，我们可以获得接收机的速度和钟漂：
+其中 $\mathbf{v}^s = (v_x^s, v_y^s, v_z^s)^T$ ， $\mathbf{v}_r = (v_{x,r}, v_{y,r}, v_{z,r})^T$ 。
+
+通过使用与位置估计类似的迭代最小二乘法，我们可以获得接收机的速度和钟漂：
 
 $\begin{equation}
 \hat{\mathbf{x}} = \lim_{i \to \infty} \hat{\mathbf{x}}_i = (\dot{\mathbf{v}}_r^T, c\hat{d}\dot{t}_r)^T \tag{E.6.30}
@@ -302,6 +304,6 @@ $\begin{equation}
 GDOP < GDOP_{thres} \tag{E.6.34}
 \end{equation}$
 
-其中 $n$ 是待估参数的数目， $m$ 是观测量的数目。$\chi_a^2(n)$ 是自由度 $n$ 和 $\alpha=0.001 (0.1\%)$ 的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$ ，可以配置选项“Reject Threshold of GDOP”中进行相关设置。
+其中 $n$ 是待估参数的数目， $m$ 是观测量的数目。$\chi_a^2(n)$ 是自由度 $n$ 和 $\alpha=0.001 (0.1\%)$ 的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$ 可以在“Reject Threshold of GDOP”选项中进行相关配置。
 
 除了上述解的检验之外，RTKLIB在版本2.4.2中还增加了RAIM（接收机自主完好性监控）FDE（故障检测与排除）功能。如果启用了配置选项“RAIM FDE”，那么在式(E.6.33)中的卡方检验失败后，RTKLIB将通过逐个排除可见卫星来进行重新估计。在重新进行了所有尝试后，选择具有最小归一化平方残差 $\mathbf{v}^T\mathbf{v}$ 的估计位置作为最终解。在这种方案中，由于卫星故障、接收机故障或较严重的多路径所导致的无效观测值将被视为异常值并被剔除掉。请注意，此功能需要2颗冗余的可见卫星，这意味着至少需要6颗可见卫星才能获得最终解。

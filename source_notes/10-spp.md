@@ -1,447 +1,1381 @@
 # 10. 伪距单点定位
 
-## 10.1 伪距单点定位流程
+<img src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250708-174707.jpg"/>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图10-1 伪距单点定位流程</p>
 
-![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/0246fb12d67e41cfb139dcc61183d784.png)
+RTKLIB 伪距单点定位源码的解析参考了资料[1][2][3]，对于`satposs()`函数的源码分析可以参考第7章。
 
-### 10.1.1 pntpos()：单点定位主入口函数
+## 10.1 核心定位函数
 
-1. **传入参数**：
+### 10.1.1 pntpos()：单点定位入口函数
 
-    ```c
-    obsd_t *obs      I   observation data            OBS observation data
-    int    n         I   number of observation data  Number of observations
-    nav_t  *nav      I   navigation data             NAV navigation message data
-    prcopt_t *opt    I   processing options          Processing options
-    sol_t  *sol      IO  solution                    Solution
-    double *azel     IO  azimuth/elevation angle (rad) (NULL: no output)     Azimuth and elevation angle
-    ssat_t *ssat     IO  satellite status             (NULL: no output)     Satellite status
-    char   *msg      O   error message for error exit Error message
-    ```
+**1. 参数列表**
 
-2. **执行流程**:
+```c
+/* args */
+obsd_t   *obs     I   observation data
+int       n       I   number of observation data
+nav_t    *nav     I   navigation data
+prcopt_t *opt     I   processing options
+sol_t    *sol     IO  solution
+double   *azel    IO  azimuth/elevation angle (rad) (NULL: no output)
+ssat_t   *ssat    IO  satellite status              (NULL: no output)
+char     *msg     O   error message for error exit
+/* return */
+int                   stat (1:ok,0:error)
+```
 
-    - 检验观测值数是否大于 0 
-    - `sol->time`赋值第一个观测值的时间 
-    - 如果处理选项不是SPP ，电离层矫正选Klobuchar模型 ，对流层矫正采用Saastmoinen模型 
-    - 调用`satposs()`计算计算卫星位置、速度和钟差 
-      - `rs[(0:2)+i*6]`：obs[i] sat position {x,y,z} (m) 
-      - `rs[(3:5)+i*6]`：obs[i] sat velocity {vx,vy,vz} (m/s) 
-      - `dts[(0:1)+i*2]`：obs[i] sat clock {bias,drift} (s|s/s) 
-      - `var[i]`：卫星位置和钟差的协方差 (m^2) 
-      - `svh[i]`：卫星健康标志 (-1:correction not available) 
-    - 调用`estpos()`用伪距位置估计，加权最小二乘，其中会调用 valsol 进行卡方检验和GDOP 检验 
-    - `estpos()`中`valsol`检验失败，即位置估计失败，会调用`raim_fde`接收机自主完好性监测重新估计， 前提是卫星数 > 6、对应参数解算设置`opt->posopt[4]=1`
-    - 调用`estvel()`用多普勒估计速度。
-    - 存入方位角和俯仰角 ，赋值卫星状态结构体ssat
+**2. 执行流程**
 
-    ::: details 点击查看代码
-    ```c
-    extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
-                      const prcopt_t *opt, sol_t *sol, double *azel, ssat_t *ssat,
-                      char *msg)
-    {
-        prcopt_t opt_=*opt;
-        double *rs,*dts,*var,*azel_,*resp;
-        int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
-        
-        trace(3,"pntpos  : tobs=%s n=%d\n",time_str(obs[0].time,3),n);
-        sol->stat=SOLQ_NONE;
-        
-        if (n<=0) {     //检验观测值数是否大于0
-            strcpy(msg,"no observation data");
-            return 0;
-        }
-        sol->time=obs[0].time;  //sol->time赋值第一个观测值的时间
-        msg[0]='\0';
-        
-        rs=mat(6,n); dts=mat(2,n); var=mat(1,n); azel_=zeros(2,n); resp=mat(1,n);
-        
-        if (opt_.mode!=PMODE_SINGLE) { /* for precise positioning */    //如果处理选项不是SPP
-            opt_.ionoopt=IONOOPT_BRDC;  //电离层矫正选Klobuchar广播星历模型
-            opt_.tropopt=TROPOPT_SAAS;  //对流层矫正采用Saastmoinen模型
-        }
-        /* satellite positons, velocities and clocks */     //计算卫星位置、速度和钟差
-        satposs(sol->time,obs,n,nav,opt_.sateph,rs,dts,var,svh);
-        
-        /* estimate receiver position with pseudorange */   //用伪距位置估计，加权最小二乘，其中会调用valsol进行卡方检验和GDOP检验
-        stat=estpos(obs,n,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
-        
-        /* RAIM FDE */
-        if (!stat&&n>=6&&opt->posopt[4]) {     //estpos中valsol检验失败，即位置估计失败，
-                                                //会调用RAIM接收机自主完好性监测重新估计，
-                                                //前提是卫星数>6、对应参数解算设置opt->posopt[4]=1
-            stat=raim_fde(obs,n,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
-        }
-        /* estimate receiver velocity with Doppler */
-        if (stat) {
-            estvel(obs,n,rs,dts,nav,&opt_,sol,azel_,vsat);  //用多普勒估计速度
-        }
-        if (azel) {
-            for (i=0;i<n*2;i++) azel[i]=azel_[i];   //存入方位角和俯仰角
-        }
-        if (ssat) {     //赋值卫星状态结构体ssat
-            for (i=0;i<MAXSAT;i++) {
-                ssat[i].vs=0;
-                ssat[i].azel[0]=ssat[i].azel[1]=0.0;
-                ssat[i].resp[0]=ssat[i].resc[0]=0.0;
-                ssat[i].snr[0]=0;
-            }
-            for (i=0;i<n;i++) {
-                ssat[obs[i].sat-1].azel[0]=azel_[  i*2];
-                ssat[obs[i].sat-1].azel[1]=azel_[1+i*2];
-                ssat[obs[i].sat-1].snr[0]=obs[i].SNR[0];
-                if (!vsat[i]) continue;
-                ssat[obs[i].sat-1].vs=1;
-                ssat[obs[i].sat-1].resp[0]=resp[i];
-            }
-        }
-        free(rs); free(dts); free(var); free(azel_); free(resp);
-        return stat;
+- `sol->time`赋值第一个观测值（顺序存储的第一颗卫星）的时间 
+- 如果处理选项不是 SPP（针对 PPP），电离层校正选 Klobuchar 模型 ，对流层校正采用 Saastmoinen 模型 
+- 调用`satposs()`计算卫星位置、速度和钟差（ECEF 坐标系） 
+    - `rs [(0:2)+i*6]`：obs[i] 卫星位置 {x, y, z} (m) 
+    - `rs [(3:5)+i*6]`：obs[i] 卫星速度 {vx, vy, vz} (m/s) 
+    - `dts[(0:1)+i*2]`：obs[i] 卫星钟差与钟漂 {bias, drift} (s, s/s) 
+    - `var[i]`：卫星的误差方差 (m^2)，代表了卫星位置和钟差所包含的误差水平，最终会合入伪距的方差中
+    - `svh[i]`：卫星健康标志 (-1:correction not available) 
+- 调用`estpos()`使用伪距进行位置估计，采用加权最小二乘，其中会调用 `valsol` 进行卡方检验和 GDOP 检验 
+- 若`estpos()`中`valsol`检验失败，即位置估计失败，会调用`raim_fde`接收机自主完好性监测重新估计，前提是卫星数 > 6、对应参数解算设置`opt->posopt[4]=1`
+- 调用`estvel()`使用多普勒进行速度估计
+- 保存方位角和俯仰角信息，赋值卫星状态结构体ssat
+
+**3. 注意事项**
+
+- **关于钟漂信息**：这里只计算了接收机的钟差，而没有计算接收机的频漂，原因在于 estvel 函数中虽然计算得到了接收机频漂，但并没有将其输出到 sol_t:dtr中。
+- **C语言内存使用问题**：C语言中用 `malloc` 申请的内存需要自己调用 `free` 来予以回收，源码中的 `mat` `、imat` `、zeros` 等函数都只是申请了内存，并没有进行内存的回收，在使用这些函数时，用户必须自己调用 `free` 来回收内存！源码中将使用这些函数的代码放置在同一行，在调用函数结尾处也统一进行内存回收，位置较为明显，不致于轻易忘记。
+
+**4. 问题思考**
+- **RTKLIB观测数据中的时间**：源码中将 obs[0].time作为星历选择时间传递给 satposs函数，这样对于每一颗观测卫星，都要使用第一颗观测卫星的数据接收时间作为选择星历的时间标准。是否应该每颗卫星都使用自己的观测时间？或者应该使用每颗卫星自己的信号发射时间？还是说这点差别对选择合适的星历其实没有关系？**该问题的分析参考附录B.1**。
+- **raim_fde 对卫星数目的要求**：这里规定能够执行 raim_fde 函数的前提是数目大于等于 6，感觉不是只要大于等于 5就可以了吗？**该问题的分析参考附录B.2**。
+
+::: details 点击查看代码
+```c
+extern int pntpos(const obsd_t *obs, int n, const nav_t *nav,
+                  const prcopt_t *opt, sol_t *sol, double *azel, ssat_t *ssat,
+                  char *msg)
+{
+    prcopt_t opt_=*opt;
+    double *rs,*dts,*var,*azel_,*resp;
+    int i,stat,vsat[MAXOBS]={0},svh[MAXOBS];
+    
+    trace(3,"pntpos  : tobs=%s n=%d\n",time_str(obs[0].time,3),n);
+    sol->stat=SOLQ_NONE;
+    
+    if (n<=0) {
+        strcpy(msg,"no observation data");
+        return 0;
     }
-    ```
-    :::
+
+    sol->time=obs[0].time; // sol->time赋值第一个观测值的时间
+    msg[0]='\0';
+    
+    rs=mat(6,n); dts=mat(2,n); var=mat(1,n); azel_=zeros(2,n); resp=mat(1,n);
+    
+    if (opt_.mode!=PMODE_SINGLE) { /* for precise positioning */
+        opt_.ionoopt=IONOOPT_BRDC; // 电离层校正选 Klobuchar 广播星历模型
+        opt_.tropopt=TROPOPT_SAAS; // 对流层校正采用 Saastmoinen 模型
+    }
+    
+    // 计算卫星位置、速度和钟差
+    /* satellite positons, velocities and clocks */
+    satposs(sol->time,obs,n,nav,opt_.sateph,rs,dts,var,svh);
+    
+    // 用伪距位置估计，加权最小二乘，其中会调用 valsol 进行卡方检验和 GDOP 检验
+    /* estimate receiver position with pseudorange */
+    stat=estpos(obs,n,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
+    
+    /* RAIM FDE */
+    if (!stat&&n>=6&&opt->posopt[4]) {  
+        // estpos 中 valsol 检验失败，即位置估计失败，则会调用 RAIM 接收机自主完好性监测重新估计，
+        // 前提是卫星数 > 6，且对应参数解算设置 opt->posopt[4]=1，即pos1-posopt5=on（RAIM FDE）
+        stat=raim_fde(obs,n,rs,dts,var,svh,nav,&opt_,sol,azel_,vsat,resp,msg);
+    }
+    // 调用 estvel 进行多普勒速度估计
+    /* estimate receiver velocity with Doppler */
+    if (stat) {
+        estvel(obs,n,rs,dts,nav,&opt_,sol,azel_,vsat);
+    }
+    if (azel) {
+        for (i=0;i<n*2;i++) azel[i]=azel_[i];
+    }
+    if (ssat) { // 保存卫星状态信息至ssat结构体
+        for (i=0;i<MAXSAT;i++) {
+            ssat[i].vs=0;
+            ssat[i].azel[0]=ssat[i].azel[1]=0.0;
+            ssat[i].resp[0]=ssat[i].resc[0]=0.0;
+            ssat[i].snr[0]=0;
+        }
+        for (i=0;i<n;i++) {
+            ssat[obs[i].sat-1].azel[0]=azel_[  i*2];
+            ssat[obs[i].sat-1].azel[1]=azel_[1+i*2];
+            ssat[obs[i].sat-1].snr[0]=obs[i].SNR[0];
+            if (!vsat[i]) continue;
+            ssat[obs[i].sat-1].vs=1;
+            ssat[obs[i].sat-1].resp[0]=resp[i];
+        }
+    }
+    free(rs); free(dts); free(var); free(azel_); free(resp);
+    return stat;
+}
+```
+:::
 
 ### 10.1.2 estpos()：通过伪距实现绝对定位
 
-计算出接收机的位置和钟差，顺带返回实现定位后每颗卫星的{方位角、仰角}、定位时有效性、定位后伪距残差。 
+计算出接收机的位置和钟差，并返回每颗卫星的{方位角、仰角}、定位时有效性、定位后伪距残差。 
 
-1. **传入参数**：
+**1. 参数列表**
 
-    ```c
-    obsd_t   *obs      I   观测量数据
-    int      n         I   观测量数据的数量
-    double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-    double   *vare     I   卫星位置和钟差的协方差 (m^2)
-    int      *svh      I   卫星健康标志 (-1:correction not available)
-    nav_t    *nav      I   导航数据
-    prcopt_t *opt      I   处理过程选项
-    prcopt_t *opt      I   处理过程选项
-    sol_t    *sol      IO  solution
-    double   *azel     IO  方位角和俯仰角 (rad)
-    int      *vsat     IO  卫星在定位时是否有效
-    double   *resp     IO  定位后伪距残差 (P-(r+c*dtr-c*dts+I+T))
-    char     *msg      O   错误消息
-    ```
+```c
+/* args */
+obsd_t   *obs      I   观测量数据
+int      n         I   观测量数据的数量
+double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+double   *vare     I   卫星位置和钟差的协方差 (m^2)
+int      *svh      I   卫星健康标志 (-1:correction not available)
+nav_t    *nav      I   导航数据
+prcopt_t *opt      I   处理过程选项
+prcopt_t *opt      I   处理过程选项
+sol_t    *sol      IO  solution
+double   *azel     IO  方位角和俯仰角 (rad)
+int      *vsat     IO  卫星在定位时是否有效
+double   *resp     IO  定位后伪距残差 (P-(r+c*dtr-c*dts+I+T))
+char     *msg      O   错误消息
+/* return */
+int                    stat (1:ok,0:error)
+```
 
-2. **执行流程**：
+**2. 执行流程**
 
-    * 赋值`x[i]`：如果是第一次定位，即输入的 sol 为空，则 x 初值为 0；如果之前有过定位，则可以将上一历元的定位值`sol->rr[]`作为该历元定位的初始值。
-    * 开始迭代计算：迭代次数`MAXITR`默认为10。
-      - 调用`rescode()`：计算当前迭代的伪距残差 v、设计矩阵 H、伪距残差的方差 var、所有观测卫星的方位角和仰角 azel，定位时有效性 vsat、定位后伪距残差 resp、参与定位的卫星个数` ns`和方程个数` nv`。
-      - 确定方程组中方程的个数`nv`要大于未知数`NX`的个数。
-      - 以伪距残差的标准差的倒数作为权重，对`H`和`v`分别左乘权重对角阵，得到加权之后的`H`和`v `。
-      - 调用`lsq()`最小二乘函数,得到当前`x`的修改量`dx`和定位误差协方差矩阵中的权系数阵  。
-      - 将`lsq()`中求得的 `dx` 加入到当前`x`值中，得到更新之后的`x`值 
-      - 如果求得的修改量`dx`小于截断因子(目前是1E-4)：
-        * 则将`x`作为最终的定位结果，对`sol`的相应参数赋值。
-        * 之后再调用对定位结果进行卡方检验和GDOP检验，检验成立根据是否用SBAS赋值解的状态（单点解，SBAS解）。
-        * 不小于截断因子，则进行下一次循环。
-      - 如果超过了规定的循环次数，则输出发散信息后，`return 0`。
+* 赋值`x[i]`：将 `sol->rr` 的前 3 项赋值给 `x` 数组（如果是第一次定位，那么 `x` 初值为 0）。
+* 开始迭代计算：迭代次数`MAXITR`默认为10。
+  - 调用`rescode()`：计算当前迭代的伪距残差 `v`、设计矩阵 `H`、伪距残差的方差 `var`（用以加权）、所有观测卫星的方位角和仰角 `azel`，定位时有效性 `vsat`、定位后伪距残差 `resp`、参与定位的卫星个数 `ns` 和方程个数 `nv`。
+  - 确定方程组中方程的个数`nv`要大于未知数`NX`的个数。
+  - 以伪距残差的标准差的倒数 `1/sqrt(var)` 作为权重，对`H`和`v`分别左乘权重对角阵，得到加权之后的`H`和`v`。
+  - 调用`lsq()`最小二乘函数,得到当前`x`的改正数`dx`和定位误差协方差矩阵。
+  - 将`lsq()`中求得的 `dx` 加入到当前`x`值中，得到更新之后的`x`值 
+  - 如果求得的修改量`dx`小于截断因子(目前是1E-4)：
+    * 则将`x`作为最终的定位结果，对`sol`的相应参数赋值。
+    * 之后再调用对定位结果进行卡方检验和 GDOP 检验，检验当前结果是否符合要求（伪距残余小于某个卡方值以及 GDOP 小于某个门限值）。
+    * 大于截断因子，则进行下一次循环。
+  - 如果超过了规定的循环次数，则输出发散信息后，`return 0`。
 
-    ::: details 点击查看代码
-    ```c
-    static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
-                     const double *vare, const int *svh, const nav_t *nav,
-                     const prcopt_t *opt, sol_t *sol, double *azel, int *vsat,
-                     double *resp, char *msg)
-    {
-        double x[NX]={0},dx[NX],Q[NX*NX],*v,*H,*var,sig;
-        int i,j,k,info,stat,nv,ns;
+**3. 注意事项**
+
+- **关于加权最小二乘**：这里的权重值是对角阵，这是建立在假设不同测量值的误差之间是彼此独立的；另外，这个权重值并不单是伪距测量误差的，而是方程右端 b 整体的测量误差。最后，大部分资料上这里都是把权重矩阵 W 保留到方程的解的表达式当中，而这里是直接对 H 和 v 分别左乘权重对角阵，得到加权之后的 H 和 v ，这样做的等价的，其好处是减少运算量。
+- **校验函数的使用**：如果某次迭代过程中步长小于门限值(1e-4)，但经 valsol 函数检验后该解无效，则会直接返回 0，并不会再进行下一次迭代计算。实际上卡方校验的条件过于严格，运用到低成本接收机时可以直接关闭卡方校验。
+- **sol中的钟差修正**：在对 sol 结构体赋值时，sol 中实际存储的是减去接收机钟差后的信号观测时间。
+- **估计状态的维度**：源码中定位方程的个数 nv 要大于有效观测卫星的个数 ns，这里为了防止亏秩，并且又加了 3 个未知数和观测方程（对应了其他系统的钟差项）。
+- **rescode的处理**：在每一次重新调用 rescode函数时，其内部并没有对 v 、H 和 var 进行清零处理，所以当方程数变少时，可能会存在尾部仍保留上一次数据的情况，但是因为数组相乘时都包含所需计算的长度 nv，所以这种情况并不会对计算结果造成影响。
+
+::: details 点击查看代码
+```c
+static int estpos(const obsd_t *obs, int n, const double *rs, const double *dts,
+                  const double *vare, const int *svh, const nav_t *nav,
+                  const prcopt_t *opt, sol_t *sol, double *azel, int *vsat,
+                  double *resp, char *msg)
+{
+    double x[NX]={0},dx[NX],Q[NX*NX],*v,*H,*var,sig;
+    int i,j,k,info,stat,nv,ns;
+    
+    trace(3,"estpos  : n=%d\n",n);
+    
+    v=mat(n+4,1); H=mat(NX,n+4); var=mat(n+4,1);
+    
+    // 赋值x[i]：将 sol->rr 的前 3 项赋值给 x 数组（如果是第一次定位，那么 x 初值为 0）
+    for (i=0;i<3;i++) x[i]=sol->rr[i]; 
+
+    for (i=0;i<MAXITR;i++) {
+        // 首先调用 rescode 函数，计算当前迭代的伪距残差 v、几何矩阵 H
+        // 伪距残差的方差 var、所有观测卫星的方位角和仰角 azel、定位时有效性 vsat、
+        // 定位后伪距残差 resp、参与定位的卫星个数 ns 和方程个数 nv
+        /* pseudorange residuals (m) */
+        nv=rescode(i,obs,n,rs,dts,vare,svh,nav,x,opt,v,H,var,azel,vsat,resp,
+                  &ns);
         
-        trace(3,"estpos  : n=%d\n",n);
-        
-        v=mat(n+4,1); H=mat(NX,n+4); var=mat(n+4,1);
-        
-        for (i=0;i<3;i++) x[i]=sol->rr[i]; 
-        //如果是第一次定位，即输入的 sol 为空，则 x 初值为 0；如果之前有过定位，则可以将上一历元的定位值sol->rr[]作为该历元定位的初始值
-
-        //开始迭代定位计算
-        for (i=0;i<MAXITR;i++) {
-            //首先调用 rescode 函数，计算当前迭代的伪距残差 v、几何矩阵 H
-            //伪距残差的方差 var、所有观测卫星的方位角和仰角 azel、定位时有效性 vsat、
-            //定位后伪距残差 resp、参与定位的卫星个数 ns 和方程个数 nv
-            /* pseudorange residuals (m) */
-            nv=rescode(i,obs,n,rs,dts,vare,svh,nav,x,opt,v,H,var,azel,vsat,resp,
-                      &ns);
-            
-            if (nv<NX) {    //确定方程组中方程的个数要大于未知数的个数
-                sprintf(msg,"lack of valid sats ns=%d",nv);
-                break;
-            }
-            /* weighted by Std */   //以伪距残差的标准差的倒数作为权重，对 H 和 v 分别左乘权重对角阵，得到加权之后的H和v
-            for (j=0;j<nv;j++) {
-                sig=sqrt(var[j]);   //这里的权重值是对角阵，这是建立在假设不同测量值的误差之间是彼此独立的基础上的
-                //直接对 H 和 v 分别左乘权重对角阵，得到加权之后的 H 和 v
-                v[j]/=sig;  
-                for (k=0;k<NX;k++) H[k+j*NX]/=sig;
-            }
-            /* least square estimation */   //调用 lsq 函数,得到当前 x 的修改量 dx 和定位误差协方差矩阵中的权系数阵 Q
-            if ((info=lsq(H,v,NX,nv,dx,Q))) {
-                sprintf(msg,"lsq error info=%d",info);
-                break;
-            }
-            for (j=0;j<NX;j++) {    //将lsq中求得的 dx 加入到当前 x 值中，得到更新之后的 x 值
-                x[j]+=dx[j];
-            }
-            //如果求得的修改量dx小于截断因子(目前是1E-4)，则将x[j]作为最终的定位结果，
-            //对 sol 的相应参数赋值,之后再调用 valsol 函数确认当前解是否符合要求,参考 RTKLIB Manual P162
-            //否则，进行下一次循环。
-            if (norm(dx,NX)<1E-4) {
-                sol->type=0;
-                //解方程时的 dtr 单位是 m，是乘以了光速之后的，解出结果后赋给 sol->dtr 时再除以光速
-                sol->time=timeadd(obs[0].time,-x[3]/CLIGHT);    //sol->time 中存储的是减去接收机钟差后的信号观测时间
-                sol->dtr[0]=x[3]/CLIGHT; /* receiver clock bias (s) */
-                sol->dtr[1]=x[4]/CLIGHT; /* GLO-GPS time offset (s) */
-                sol->dtr[2]=x[5]/CLIGHT; /* GAL-GPS time offset (s) */
-                sol->dtr[3]=x[6]/CLIGHT; /* BDS-GPS time offset (s) */
-                sol->dtr[4]=x[7]/CLIGHT; /* IRN-GPS time offset (s) */
-                for (j=0;j<6;j++) sol->rr[j]=j<3?x[j]:0.0;
-                for (j=0;j<3;j++) sol->qr[j]=(float)Q[j+j*NX];
-                sol->qr[3]=(float)Q[1];    /* cov xy */
-                sol->qr[4]=(float)Q[2+NX]; /* cov yz */
-                sol->qr[5]=(float)Q[2];    /* cov zx */
-                sol->ns=(uint8_t)ns;
-                sol->age=sol->ratio=0.0;
-                
-                /* validate solution */
-                if ((stat=valsol(azel,vsat,n,opt,v,nv,NX,msg))) {   //对定位结果进行卡方检验和GDOP检验
-                    sol->stat=opt->sateph==EPHOPT_SBAS?SOLQ_SBAS:SOLQ_SINGLE;
-                }
-                free(v); free(H); free(var);
-                return stat;
-            }
+        if (nv<NX) { // 确定方程组中方程的个数要大于未知数的个数
+            sprintf(msg,"lack of valid sats ns=%d",nv);
+            break;
         }
-        //如果超过了规定的循环次数，则输出发散信息后，return 0
-        if (i>=MAXITR) sprintf(msg,"iteration divergent i=%d",i);   
-        
-        free(v); free(H); free(var);
+        /* weighted by Std */ // 以伪距残差的标准差的倒数作为权重，对 H 和 v 分别左乘权重对角阵，得到加权之后的H和v
+        for (j=0;j<nv;j++) {
+            sig=sqrt(var[j]); // 这里的权重值是对角阵，这是建立在假设不同测量值的误差之间是彼此独立的基础上的
+            // 直接对 H 和 v 分别左乘权重对角阵，得到加权之后的 H 和 v
+            v[j]/=sig;  
+            for (k=0;k<NX;k++) H[k+j*NX]/=sig;
+        }
+        // 调用 lsq 函数,得到当前 x 的修改量 dx 和定位误差协方差矩阵中的权系数阵 Q
+        /* least square estimation */
+        if ((info=lsq(H,v,NX,nv,dx,Q))) {
+            sprintf(msg,"lsq error info=%d",info);
+            break;
+        }
+        // 将lsq中求得的 dx 加入到当前 x 值中，得到更新之后的 x 值
+        for (j=0;j<NX;j++) {
+            x[j]+=dx[j];
+        }
+        // 如果求得的修改量dx小于截断因子(目前是1E-4)，则将x[j]作为最终的定位结果，
+        // 对 sol 的相应参数赋值,之后再调用 valsol 函数确认当前解是否符合要求,参考 RTKLIB Manual P162
+        // 否则，进行下一次循环。
+        if (norm(dx,NX)<1E-4) {
+            sol->type=0;
+            // 解方程时的 dtr 单位是 m，是乘以了光速之后的，解出结果后赋给 sol->dtr 时再除以光速
+            // sol->time 中存储的是减去接收机钟差后的信号观测时间
+            sol->time=timeadd(obs[0].time,-x[3]/CLIGHT);
+            sol->dtr[0]=x[3]/CLIGHT; /* receiver clock bias (s) */
+            sol->dtr[1]=x[4]/CLIGHT; /* GLO-GPS time offset (s) */
+            sol->dtr[2]=x[5]/CLIGHT; /* GAL-GPS time offset (s) */
+            sol->dtr[3]=x[6]/CLIGHT; /* BDS-GPS time offset (s) */
+            sol->dtr[4]=x[7]/CLIGHT; /* IRN-GPS time offset (s) */
+            for (j=0;j<6;j++) sol->rr[j]=j<3?x[j]:0.0;
+            for (j=0;j<3;j++) sol->qr[j]=(float)Q[j+j*NX];
+            sol->qr[3]=(float)Q[1];    /* cov xy */
+            sol->qr[4]=(float)Q[2+NX]; /* cov yz */
+            sol->qr[5]=(float)Q[2];    /* cov zx */
+            sol->ns=(uint8_t)ns;
+            sol->age=sol->ratio=0.0;
+            
+            // 对定位结果进行卡方检验和GDOP检验
+            /* validate solution */
+            if ((stat=valsol(azel,vsat,n,opt,v,nv,NX,msg))) {
+                sol->stat=opt->sateph==EPHOPT_SBAS?SOLQ_SBAS:SOLQ_SINGLE;
+            }
+            free(v); free(H); free(var);
+            return stat;
+        }
+    }
+    // 如果超过了规定的循环次数，则输出发散信息后，return 0
+    if (i>=MAXITR) sprintf(msg,"iteration divergent i=%d",i);   
+    
+    free(v); free(H); free(var);
+    return 0;
+}
+```
+:::
+
+### 10.1.3 estvel()：通过多普勒计算接收机速度
+
+**1. 参数列表**
+
+```c
+/* args */
+obsd_t   *obs      I   OBS观测数据
+int       n        I   观测数据的数量
+double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
+nav_t    *nav      I   导航数据
+prcopt_t *opt      I   处理过程选项
+sol_t    *sol      IO  solution
+double   *azel     IO  方位角和俯仰角 (rad)
+int      *vsat     IO  定位时有效卫星
+char     *msg      O   错误消息
+/* return */
+int                    stat (1:ok,0:error)
+```
+
+**2. 执行流程**
+
+* 定速的初始值直接给定为 0 ，而不像定位时初值选上一历元的的位置（一定程度上因为 SPP 的速度估计精度较低）。
+* for循环迭代计算，最大迭代次数（默认10次）
+  * 调用`resdop()`，计算定速方程组左边的几何矩阵和右端的速度残差，返回定速时所使用的卫星数目
+  * 调用最小二乘法`lsq()`函数，解出{速度、频漂}的改正量`dx`，累加到`x`中。 
+  * 检查当前计算出的改正量的绝对值是否小于 1E-6 ，满足条件则说明当前解已经很接近真实值了，将接收机三个方向上的速度、协方差存入到 sol->rr 中 。否则进行下一次循环。
+
+**3. 注意事项**
+
+- **钟漂信息**：最终向 sol 速度结果时，并没有存储所计算出的接收器钟漂。
+
+::: details 点击查看代码
+```c
+static void estvel(const obsd_t *obs, int n, const double *rs, const double *dts,
+                   const nav_t *nav, const prcopt_t *opt, sol_t *sol,
+                   const double *azel, const int *vsat)
+{
+   // 定速的初始值直接给定为 0 ，而不像定位时初值选上一历元的的位置（一定程度上因为 SPP 的速度估计精度较低）
+   double x[4]={0},dx[4],Q[16],*v,*H;
+   double err=opt->err[4]; /* Doppler error (Hz) */
+   int i,j,nv;
+   
+   trace(3,"estvel  : n=%d\n",n);
+   
+   v=mat(n,1); H=mat(4,n);
+   
+   for (i=0;i<MAXITR;i++) {
+       // 调用 resdop，计算定速方程组左边的几何矩阵和右端的速度残余，返回定速时所使用的卫星数目
+       /* range rate residuals (m/s) */
+       if ((nv=resdop(obs,n,rs,dts,nav,sol->rr,x,azel,vsat,err,v,H))<4) {
+           break;
+       }
+       // 调用最小二乘法 lsq 函数，解出{速度、频漂}的改正量 dx，累加到 x 中。
+       // 频漂计算了，但并没有存储下来
+       /* least square estimation */
+       if (lsq(H,v,4,nv,dx,Q)) break;        
+       for (j=0;j<4;j++) x[j]+=dx[j];
+       // 检查当前计算出的改正量的绝对值是否小于 1E-6,
+       // 是：则说明当前解已经很接近真实值了，将接收机三个方向上的速度存入到 sol->rr 中
+       // 否：进行下一次循环
+       if (norm(dx,4)<1E-6) {
+           matcpy(sol->rr+3,x,3,1);
+           sol->qv[0]=(float)Q[0];  /* xx */
+           sol->qv[1]=(float)Q[5];  /* yy */
+           sol->qv[2]=(float)Q[10]; /* zz */
+           sol->qv[3]=(float)Q[1];  /* xy */
+           sol->qv[4]=(float)Q[6];  /* yz */
+           sol->qv[5]=(float)Q[2];  /* zx */
+           break;
+       }   
+   }
+   free(v); free(H);
+}
+```
+:::
+
+### 10.1.4 raim_fde()：接收机自主完好性检测与故障检测排除
+
+通过每次排除一颗卫星计算，选取残差最小的一次作为最终解算结果，此时对应的卫星就是故障卫星。
+
+**1. 参数列表**
+
+```c
+/* args */
+const obsd_t   *obs     I    OBS观测数据
+int             n       I    观测数据的数量
+const double   *rs      I    卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+const double   *dts     I    卫星钟差，长度为2*n， {bias,drift} (s|s/s)
+const double   *vare    I    卫星位置和钟差的协方差 (m^2)
+const int      *svh     I    卫星健康标志 (-1:correction not available)
+const nav_t    *nav     I    导航数据
+const prcopt_t *opt     I    处理过程选项
+sol_t          *sol     IO   解算结果
+double         *azel    IO   方位角和俯仰角 (rad)
+int            *vsat    IO   表征卫星在定位时是否有效
+double         *resp    IO   观测卫星的伪距残差，(P-(r+c*dtr-c*dts+I+T)) (1*n)
+char           *msg     O    错误信息
+/* return */
+int                          stat (1:ok,0:error)
+```
+
+**2. 执行流程**
+
+- 遍历所有卫星，每次舍弃一颗卫星，然后利用余下卫星进行定位解算。
+- 累加使用当前卫星实现定位后的伪距残差平方和与可用卫星数目，如果 `nvsat<5` ，则说明当前卫星数目过少，无法进行 RAIM_FDE 操作。
+- 计算伪距残差平方和的标准平均值，如果大于` rms`，则说明当前定位结果更合理，将 `stat` 置为 1，重新更新 `sol`、`azel`、`vsat`(当前被舍弃的卫星，此值置为0)、`resp` 等值，并将当前的 `rms_e` 更新到 `rms` 中（用以下一轮循环的判断）。
+- 继续弃用下一颗卫星，重复上述操作。总而言之，在弃用一颗卫星条件下，选取伪距残差标准平均值最小的组合作为最终的结果输出。
+- 如果 stat不为 0，则说明在弃用卫星的前提下有更好的解出现，输出信息，指出弃用了哪科卫星。
+
+**3. 注意事项**
+
+- 源码中有很多关于 `i`、`j`、`k` 的循环。其中，`i` 表示最外面的大循环，每次将将第 `i` 颗卫星舍弃不用，这是通过 `if (j==i) continue` 实现的；`j` 表示剩余使用的卫星的循环，每次进行相应数据的赋值；`k` 表示参与定位的卫星的循环，与 `j` 一起使用。
+
+::: details 点击查看代码
+```c
+static int raim_fde(const obsd_t *obs, int n, const double *rs,
+                    const double *dts, const double *vare, const int *svh,
+                    const nav_t *nav, const prcopt_t *opt, sol_t *sol,
+                    double *azel, int *vsat, double *resp, char *msg)
+{
+    obsd_t *obs_e;
+    sol_t sol_e={{0}};
+    char tstr[32],name[16],msg_e[128];
+    double *rs_e,*dts_e,*vare_e,*azel_e,*resp_e,rms_e,rms=100.0;
+    int i,j,k,nvsat,stat=0,*svh_e,*vsat_e,sat=0;
+    
+    trace(3,"raim_fde: %s n=%2d\n",time_str(obs[0].time,0),n);
+    
+    if (!(obs_e=(obsd_t *)malloc(sizeof(obsd_t)*n))) return 0;
+    rs_e = mat(6,n); dts_e = mat(2,n); vare_e=mat(1,n); azel_e=zeros(2,n);
+    svh_e=imat(1,n); vsat_e=imat(1,n); resp_e=mat(1,n); 
+
+    // 遍历所有卫星，每次舍弃一颗卫星，然后利用余下卫星进行定位解算
+    for (i=0;i<n;i++) {
+        /* satellite exclution */
+        for (j=k=0;j<n;j++) {
+            if (j==i) continue;
+            obs_e[k]=obs[j];
+            matcpy(rs_e +6*k,rs +6*j,6,1);
+            matcpy(dts_e+2*k,dts+2*j,2,1);
+            vare_e[k]=vare[j];
+            svh_e[k++]=svh[j];
+        }
+        // 调用 estpos 函数计算剩余卫星的定位结果
+        /* estimate receiver position without a satellite */
+        if (!estpos(obs_e,n-1,rs_e,dts_e,vare_e,svh_e,nav,opt,&sol_e,azel_e,
+                    vsat_e,resp_e,msg_e)) {
+            trace(3,"raim_fde: exsat=%2d (%s)\n",obs[i].sat,msg);
+            continue;
+        }
+        // 累加计算当前卫星实现定位后的伪距残差平方和与可用卫星数目
+        for (j=nvsat=0,rms_e=0.0;j<n-1;j++) {
+            if (!vsat_e[j]) continue;
+            rms_e+=SQR(resp_e[j]);
+            nvsat++;
+        }
+        if (nvsat<5) { // 如果 nvsat<5，则说明当前卫星数目过少，无法进行 RAIM_FDE 操作
+            trace(3,"raim_fde: exsat=%2d lack of satellites nvsat=%2d\n",
+                  obs[i].sat,nvsat);
+            continue;
+        }
+        rms_e=sqrt(rms_e/nvsat); // 计算伪距残差平方和的标准差rms_e
+       
+        trace(3,"raim_fde: exsat=%2d rms=%8.3f\n",obs[i].sat,rms_e);
+       
+        if (rms_e>rms) continue; // 如果伪距残差平方和的标准差rms_e>rms,继续下一次循环
+       
+        // 如果小于 rms，则说明当前定位结果更合理，将 stat 置为 1，
+        // 重新更新 sol、azel、vsat(当前被舍弃的卫星，此值置为0)、resp 等值，并将当前的 rms_e 更新到 rms 中。
+        /* save result */
+        for (j=k=0;j<n;j++) {
+            if (j==i) continue;
+            matcpy(azel+2*j,azel_e+2*k,2,1);
+            vsat[j]=vsat_e[k];
+            resp[j]=resp_e[k++];
+        }
+        stat=1;
+        *sol=sol_e;
+        sat=obs[i].sat;
+        rms=rms_e;
+        vsat[i]=0;
+        strcpy(msg,msg_e);
+    }
+    // 如果 stat不为 0，则说明在弃用卫星的前提下有更好的解出现，输出信息，指出弃用了哪颗卫星。
+    if (stat) { 
+        time2str(obs[0].time,tstr,2); satno2id(sat,name);
+        trace(2,"%s: %s excluded by raim\n",tstr+11,name);
+    }
+    free(obs_e);
+    free(rs_e ); free(dts_e ); free(vare_e); free(azel_e);
+    free(svh_e); free(vsat_e); free(resp_e);
+    return stat;
+}
+```
+:::
+
+### 10.1.5 valsol()：对定位结果进行卡方检验和GDOP检验 
+
+**1. 参数列表**
+
+```c
+/* args */
+const double *azel  I  方位角、高度角
+const int *vsat     I  观测卫星在当前定位时是否有效 (1*n)
+int n               I  观测值个数
+const prcopt_t *opt I  处理选项
+const double *v     I  定位方程的右端部分，伪距残差
+int nv              I  观测值数
+int nx              O  待估计参数数
+/* return */
+int                    stat (1:ok,0:error)
+```
+
+**2. 执行流程**
+
+$\begin{equation}
+v_s = \frac{p_r^s - (\hat{\rho}_i^s + c\hat{d}t_r - cdT^s + I_r^s + T_r^s)}{\sigma_s} \tag{10.1}
+\end{equation}$
+
+$\begin{equation}
+\mathbf{v} = (v_1, v_2, v_3, \ldots, v_m)^T \tag{10.2}
+\end{equation}$
+
+$\begin{equation}
+\frac{v^T v}{m-n-1} < \chi^2_\alpha(m - n - 1) \tag{10.3}
+\end{equation}$
+
+$\begin{equation}
+GDOP < GDOP_{thres} \tag{10.4}
+\end{equation}$
+
+> 其中 $n$ 是待估参数的数目， $m$ 是观测量的数目。$\chi_a^2(n)$ 是自由度 $n$ 和 $\alpha=0.001 (0.1\%)$ 的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$ 可以在“Reject Threshold of GDOP”选项中进行相关配置。
+
+以下为代码的执行流程：
+
+- 先计算定位后伪距残余平方加权和 `vv`。
+- 检查是否满足 `vv>chisqr[nv-nx-1]` ，满足条件则说明此时的定位解误差过大，返回 0；否则转到下一步。
+- 复制 `azel` ，这里只复制那些对于定位结果有贡献的卫星的 `zael` 值，并且统计实现定位时所用卫星的数目。
+- 调用 `dops` 函数，计算各种精度因子(DOP)，检验是否有 `0<GDOP<max` 。否，则说明该定位解的精度不符合要求，返回 0；是，则返回 1。
+
+**3. 注意事项**
+
+- 低成本接收机可能无法通过卡方校验，可禁用该部分内容（注释掉 `return 0` ）；
+- 代码中的检验与 RTKLIB manual 中不一致（但与教材一致），文档中满足 $\frac{v^T v}{m-n-1} > \chi^2_\alpha(m - n - 1)$ 时就会不合格。与文档中相比，这里的写法将会放宽对于位置解的检验。
+
+::: details 点击查看代码
+```c
+/* validate solution ---------------------------------------------------------*/
+static int valsol(const double *azel, const int *vsat, int n,
+                  const prcopt_t *opt, const double *v, int nv, int nx,
+                  char *msg)
+{
+    double azels[MAXOBS*2],dop[4],vv;
+    int i,ns;
+    
+    trace(3,"valsol  : n=%d nv=%d\n",n,nv);
+    
+    /* Chi-square validation of residuals */
+    vv=dot(v,v,nv);
+    // (E.6.33) 且观测值数大于待估计参数数  nv-nx-1:多余观测数
+    // chisqr：卡方值表
+    if (nv>nx&&vv>chisqr[nv-nx-1]) {
+        sprintf(msg,"Warning: large chi-square error nv=%d vv=%.1f cs=%.1f",nv,vv,chisqr[nv-nx-1]);
+        /* return 0; */ /* threshold too strict for all use cases, report error but continue on */
+    }
+
+    /* large GDOP check */
+    for (i=ns=0;i<n;i++) {
+        if (!vsat[i]) continue;
+        azels[  ns*2]=azel[  i*2];
+        azels[1+ns*2]=azel[1+i*2];
+        ns++;
+    }
+    dops(ns,azels,opt->elmin,dop);
+    if (dop[0]<=0.0||dop[0]>MAX_GDOP) {
+        sprintf(msg,"gdop error nv=%d gdop=%.1f",nv,dop[0]);
         return 0;
     }
-    ```
-    :::
+    return 1;
+}
+```
+:::
 
-* **lsq**()：Least square estimation、最小二乘估计
+### 10.1.6 lsq(): 最小二乘估计
 
-    - **A**：nm阶设计矩阵的转置，m<n则无法计算。
-    - **y**：m阶观测残差，**y=v=l-HX** 。
-    - **X**：传出参数、待估计的n阶参数向量的增量。
-    - **Q**：传出参数、nn协方差阵。
+**1. 参数列表**
 
-    ```c
-    extern int lsq(const double *A, const double *y, int n, int m, double *x,
-                   double *Q)
-    {
-        double *Ay;
-        int info;
-        
-        if (m<n) return -1;
-        Ay=mat(n,1);
-        matmul("NN",n,1,m,1.0,A,y,0.0,Ay); /* Ay=A*y */
-        matmul("NT",n,n,m,1.0,A,A,0.0,Q);  /* Q=A*A' */
-        if (!(info=matinv(Q,n))) matmul("NN",n,1,n,1.0,Q,Ay,0.0,x); /* x=Q^-1*Ay */
-        free(Ay);
-        return info;
+```c
+/* args */
+double *A        I   设计矩阵的转置（可含权） (n x m)
+double *y        I   观测残差项（可含权） (m x 1)
+int    n,m       I   估计参数与观测量的维度 (n<=m)
+double *x        O   估计参数 (n x 1)
+double *Q        O   协方差阵 (n x n)
+/* return */
+int                  stat (1:ok,0>:error)
+```
+
+**2. 执行过程**
+
+- 首先计算右半部分 Ay=A*y 。
+- 再计算左半部分括号里面的值 Q=A*A' 。
+- 计算 Q 矩阵的逆 Q^-1，但仍存储在 Q 中，最后再右乘 Ay，得到 x 的值。
+
+**3. 注意事项**
+
+- **关于权重的运算**：对于加权最小二乘，可以直接在调用该函数之前直接将 A、y进行加权处理，之后在调用该函数，这样得到的就是加权最小二乘的解。
+- **RTKLIB的列存储特性**：所有的矩阵都是列优先存储的，对于整个源代码来说，矩阵都是这样存储的。所以对于代码中出现的一维矩阵，基本都应该是列向量。在阅读数组下标时，记住这一点是非常重要的。
+- **矩阵求逆的特性**：矩阵求逆并不简单，尤其是对于接近奇异的矩阵。但是由于这是个基本功能，并不打算继续深入下去。
+
+::: details 点击查看代码
+```c
+/* least square estimation -----------------------------------------------------
+* least square estimation by solving normal equation (x=(A*A')^-1*A*y)
+* args   : double *A        I   transpose of (weighted) design matrix (n x m)
+*          double *y        I   (weighted) measurements (m x 1)
+*          int    n,m       I   number of parameters and measurements (n<=m)
+*          double *x        O   estimated parameters (n x 1)
+*          double *Q        O   estimated parameters covariance matrix (n x n)
+* return : status (0:ok,0>:error)
+* notes  : for weighted least square, replace A and y by A*w and w*y (w=W^(1/2))
+*          matrix stored by column-major order (fortran convention)
+*-----------------------------------------------------------------------------*/
+extern int lsq(const double *A, const double *y, int n, int m, double *x,
+               double *Q)
+{
+    double *Ay;
+    int info;
+    
+    if (m<n) return -1;
+    Ay=mat(n,1);
+    matmul("NN",n,1,m,1.0,A,y,0.0,Ay); /* Ay=A*y */
+    matmul("NT",n,n,m,1.0,A,A,0.0,Q);  /* Q=A*A' */
+    if (!(info=matinv(Q,n))) matmul("NN",n,1,n,1.0,Q,Ay,0.0,x); /* x=Q^-1*Ay */
+    free(Ay);
+    return info;
+}
+```
+:::
+
+## 10.2 卫星相关函数
+
+### 10.2.1 satsys()：根据卫星编号确定系统与PRN号
+
+RTKLIB 为了方便矩阵的构建与运算，内部对卫星进行了顺序编号（satellite number）。
+
+`satsys()` 传入卫星satellite number，返回卫星系统和 PRN 号，可以通过[笔者编写的转换工具](/algorithm/RTKLIB-Manual-CN/12-appendixH.html#h-1-prn-与-sat-编号对应关系)来直观感受这个过程。
+
+**1. 参数列表**
+
+```c
+/* args */
+int     sat      I   卫星编号 (1-MAXSAT)
+int    *prn      IO  卫星 PRN 号或槽号 (NULL则无输出)
+/* return */
+int                  卫星系统 (SYS_GPS,SYS_GLO,...)
+```
+
+**2. 执行过程**
+
+- 为处理意外情况（卫星号不在 1-MAXSAT之内），先令卫星系统为 SYS_NONE。
+- 按照 RTKLIB 中定义相应宏的顺序来判断是否是 GPS、GLO、GAL系统等，判断标准是将卫星号减去前面的导航系统所拥有的卫星个数，来判断剩余卫星个数是否小于等于本系统的卫星个数。
+- 确定所属的系统后，通过加上最小卫星编号的 PRN再减去 1，得到该卫星在该系统中的 PRN编号。
+
+**3. 注意事项**
+
+- 这里的卫星号是从 1开始排序的，这也是很多函数中与之有关的数组在调用时形式写为 A[B.sat-1]
+
+::: details 点击查看代码
+```c
+/* satellite number to satellite system ----------------------------------------
+* convert satellite number to satellite system
+* args   : int    sat       I   satellite number (1-MAXSAT)
+*          int    *prn      IO  satellite prn/slot number (NULL: no output)
+* return : satellite system (SYS_GPS,SYS_GLO,...)
+*-----------------------------------------------------------------------------*/
+extern int satsys(int sat, int *prn)
+{
+    int sys=SYS_NONE;
+    if (sat<=0||MAXSAT<sat) sat=0;
+    else if (sat<=NSATGPS) {
+        sys=SYS_GPS; sat+=MINPRNGPS-1;
     }
-    ```
+    else if ((sat-=NSATGPS)<=NSATGLO) {
+        sys=SYS_GLO; sat+=MINPRNGLO-1;
+    }
+    else if ((sat-=NSATGLO)<=NSATGAL) {
+        sys=SYS_GAL; sat+=MINPRNGAL-1;
+    }
+    else if ((sat-=NSATGAL)<=NSATQZS) {
+        sys=SYS_QZS; sat+=MINPRNQZS-1;
+    }
+    else if ((sat-=NSATQZS)<=NSATCMP) {
+        sys=SYS_CMP; sat+=MINPRNCMP-1;
+    }
+    else if ((sat-=NSATCMP)<=NSATIRN) {
+        sys=SYS_IRN; sat+=MINPRNIRN-1;
+    }
+    else if ((sat-=NSATIRN)<=NSATLEO) {
+        sys=SYS_LEO; sat+=MINPRNLEO-1;
+    }
+    else if ((sat-=NSATLEO)<=NSATSBS) {
+        sys=SYS_SBS; sat+=MINPRNSBS-1;
+    }
+    else sat=0;
+    if (prn) *prn=sat;
+    return sys;
+}
+```
+:::
 
-### 10.1.3 rescode()：残差计算、设计矩阵构建
+### 10.2.2 satexclude()：检测是否排除某颗卫星
 
-计算当前迭代的伪距残差 v、设计矩阵 H、伪距残差的方差 var、所有观测卫星的方位角和仰角 azel，定位时有效性 vsat、定位后伪距残差 resp、参与定位的卫星个数 ns 和方程个数 nv 
+**1. 参数列表**
+
+```c
+函数参数，3个
+int       sat     I   卫星编号，从 1开始
+int       svh     I   sv 健康标识 (0:ok)
+prcopt_t  *opt    I   配置参数 (NULL: not used)
+返回类型：
+int               O   1:排除, 0:不排除
+```
+
+**2. 执行过程**
+
+- 首先调用 `satsys` 函数得到该卫星所属的导航系统。
+- 接着检验 `svh<0` 。是，则说明在 `ephpos` 函数中调用 `seleph` 为该卫星选择星历时，并无合适的星历可用，返回 1；否，则进入下一步。
+- 如果处理选项不为空，则检测处理选项中对该卫星的排除标志的值(1:excluded,2:included)，之后再检测该卫星所属的导航系统与处理选项中预先设定的是否一致。否，返回 1；是，进入下一步。
+- 如果此时 `svh>0`，说明此时卫星健康状况出现问题，此卫星不可用，返回 1。
+
+**3. 问题思考**
+
+- **satexclude的作用机制**：对于步骤3中检测，先验证状态排除标志，后验证导航系统，这样就可能出现排除标志符合要求而所属系统不符合要求的状况，而步骤3中做法会将上述状况设为 included。又或者，在步骤3中检测之后仍验证了 `svh>0`，那如果出现 `svh` 不合乎要求而排除标志符合要求的状况，步骤3中做法却会将上述状况设为 included。**该部分内容可以参考附录B.3**。
+
+::: details 点击查看代码
+```c
+extern int satexclude(int sat, double var, int svh, const prcopt_t *opt)
+{
+   int sys=satsys(sat,NULL);
+   
+   // 通过svh判断卫星是否健康可用
+   /* ephemeris unavailable */
+   if (svh<0) return 1; 
+   
+   if (opt) {
+       if (opt->exsats[sat-1]==1) return 1; /* excluded satellite */
+       if (opt->exsats[sat-1]==2) return 0; /* included satellite */
+       if (!(sys&opt->navsys)) return 1;    /* unselected sat sys */ // 比较该卫星与预先规定的导航系统是否一致
+   }
+   if (sys==SYS_QZS) svh&=0xFE; /* mask QZSS LEX health */
+   if (svh) {
+       trace(3,"unhealthy satellite: sat=%3d svh=%02X\n",sat,svh);
+       return 1;
+   }
+   if (var>MAX_VAR_EPH) {
+       trace(3,"invalid ura satellite: sat=%3d ura=%.2f\n",sat,sqrt(var));
+       return 1;
+   }
+   return 0;
+}
+```
+:::
+
+### 10.2.3 testsnr()：检测信号是否可用
+
+**1. 参数列表**
+
+```c
+/* args */
+int    base      I   rover or base-station (0:rover,1:base station)
+int    freq      I   frequency (0:L1,1:L2,2:L3,...)
+double el        I   elevation angle (rad)
+double snr       I   C/N0 (dBHz)
+snrmask_t *mask  I   SNR mask
+/* return */
+int                  mask (1:masked,0:unmasked)
+```
+
+**2. 执行流程**
+
+- 满足下列情况之一 `!mask->ena[base]||freq<0||freq>=NFREQ`，返回 0.
+- 对 `el` 处理变换，根据后面 `i` 的值得到不同的阈值 `minsnr` ，而对 `1<=i<=8` 的情况，则使用线性插值计算出 `minsnr` 的值。
+
+::: details 点击查看代码
+```c
+extern int testsnr(int base, int idx, double el, double snr,
+                  const snrmask_t *mask)
+{
+    double minsnr,a;
+    int i;
+    
+    if (!mask->ena[base]||idx<0||idx>=NFREQ) return 0;
+    
+    a=(el*R2D+5.0)/10.0;
+    i=(int)floor(a); a-=i;
+    if (i<1) {
+       minsnr=mask->mask[idx][0];
+    }
+    else if (i>8) {
+       minsnr=mask->mask[idx][8];
+    }
+    else {
+       // 1<=i<=8 的情况，则使用线性插值计算出 minsnr 的值
+       minsnr=(1.0-a)*mask->mask[idx][i-1]+a*mask->mask[idx][i];
+    }
+    
+    return snr<minsnr;  // snr 小于 minsnr 时，返回1
+}
+```
+:::
+
+## 10.3 观测数据处理
+
+### 10.3.1 rescode()：残差计算、设计矩阵构建
+
+计算当前迭代的伪距残差 `v`、设计矩阵 `H`、伪距残差的方差 `var`、所有观测卫星的方位角和仰角 `azel`，定位时有效性 `vsa`t、定位后伪距残差 `resp`、参与定位的卫星个数 `ns` 和方程个数 `nv` 。
 
 > `dion`,`dtrp`,`vmeas`,`vion`,`vtrp`四个局部变量没有初始化， 运行时会报错，可赋初值0.0
 
-1. **传入参数：**
+**1. 参数列表**
 
-    ```c
-    int      iter      I   迭代次数，在estpos()里迭代调用，第i次迭代就传i
-    obsd_t   *obs      I   观测量数据
-    int      n         I   观测量数据的数量
-    double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-    double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
-    double   *vare     I   卫星位置和钟差的协方差 (m^2)
-    int      *svh      I   卫星健康标志 (-1:correction not available)
-    nav_t    *nav      I   导航数据
-    double   *x        I   本次迭代开始之前的定位值,7*1,前3个是本次迭代开始之前的定位值，第4个是钟差，后三个分别是gps系统与glonass、galileo、bds系统的钟差。
-    prcopt_t *opt      I   处理过程选项
-    double   *v        O   定位方程的右端部分，伪距残差
-    double   *H        O   定位方程中的几何矩阵
-    double   *var      O   参与定位的伪距残差的方差
-    double   *azel     O   对于当前定位值，所有观测卫星的 {方位角、高度角} (2*n)
-    int      *vsat     O   所有观测卫星在当前定位时是否有效 (1*n)
-    double   *resp     O   所有观测卫星的伪距残差，(P-(r+c*dtr-c*dts+I+T)) (1*n)
-    int      *ns       O   参与定位的卫星的个数
-    ```
+::: details 点击查看代码
+```c
+/* args */
+int      iter      I   迭代次数，在estpos()里迭代调用，第i次迭代就传i
+obsd_t   *obs      I   观测量数据
+int      n         I   观测量数据的数量
+double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
+double   *vare     I   卫星位置和钟差的协方差 (m^2)
+int      *svh      I   卫星健康标志 (-1:correction not available)
+nav_t    *nav      I   导航数据
+double   *x        I   本次迭代开始之前的定位值,7*1,前3个是本次迭代开始之前的定位值，第4个是钟差，后三个分别是gps系统与glonass、galileo、bds系统的钟差。
+prcopt_t *opt      I   处理过程选项
+double   *v        O   定位方程的右端部分，伪距残差
+double   *H        O   定位方程中的几何矩阵
+double   *var      O   参与定位的伪距残差的方差
+double   *azel     O   对于当前定位值，所有观测卫星的 {方位角、高度角} (2*n)
+int      *vsat     O   所有观测卫星在当前定位时是否有效 (1*n)
+double   *resp     O   所有观测卫星的伪距残差，(P-(r+c*dtr-c*dts+I+T)) (1*n)
+int      *ns       O   参与定位的卫星的个数
+/* return */
+int                    nv (定位方程组的方程个数)
+```
+:::
 
-2. **执行流程：**
+**2. 执行流程**
 
-    * 将之前得到的定位解信息赋值给`rr`和`dtr`数组。
-      * 调用`ecef2pos()`将将接收机位置`rr`由 ECEF-XYZ 转换为大地坐标系LLH`pos`
-      * 遍历当前历元所有`OBS[]`，即遍历每颗卫星：
-        * 将`vsat[]`、`azel[]`和`resp[]`数组置 0，因为在前后两次定位结果中，每颗卫星的上述信息都会发生变化。`time`赋值OBS的时间，`sat`赋值OBS的卫星。
-        * 检测当前观测卫星是否和下一个相邻数据重复；重复则不处理这一条，continue去处理下一条。
-        * 调用`satexclude()`函数判断卫星是否需要排除，如果排除则continue去处理下一个卫星。
-        * 调用`geodist()`函数，计算卫星和当前接收机位置之间的几何距离`r`和接收机到卫星的方向向量`e`。 
-        * 调用`satazel()`函数，计算在接收机位置处的站心坐标系中卫星的方位角和仰角；若仰角低于截断值`opt->elmin`，continue不处理此数据。
-        * 调用`snrmask()`，根据接收机高度角和信号频率来检测该信号是否可用。
-        * 调用` ionocorr()` 函数，计算电离层延时`I`,所得的电离层延时是建立在 L1 信号上的，当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的比率，对上一步得到的电离层延时进行修正。 
-        * 调用`tropcorr()`函数,计算对流层延时`T`。
-        * 调用`prange()`函数，计算经过DCB校正后的伪距值`p`。
-        * 计算伪距残差`v[nv]`，即经过钟差，对流层，电离层改正后的伪距。
-        * 组装设计矩阵 `H`
+* 将上一历元的定位信息赋值给`rr`和`dtr`数组。
+* 调用`ecef2pos()`将将接收机位置`rr`由 ECEF-XYZ 转换为大地坐标系LLH`pos`
+* 遍历当前历元所有`obs[]`，即遍历每颗卫星：
+  * 将`vsat[]`、`azel[]`和`resp[]`数组置 0，因为在前后两次定位结果中，每颗卫星的上述信息都会发生变化。`time`赋值obs的时间，`sat`赋值obs的卫星。
+  * 检测当前观测卫星是否和下一个相邻数据重复；重复则不处理这一条，continue去处理下一条。
+  * 调用`satexclude()`函数判断卫星是否需要排除，如果排除则continue去处理下一个卫星。
+  * 调用`geodist()`函数，计算卫星和当前接收机位置之间的几何距离`r`和接收机到卫星的方向向量`e`。 
+  * 调用`satazel()`函数，计算在接收机位置处的站心坐标系中卫星的方位角和仰角；若仰角低于截断值`opt->elmin`，continue不处理此数据。
+  * 调用`snrmask()`，根据接收机高度角和信号频率来检测该信号是否可用。
+  * 调用` ionocorr()` 函数，计算电离层延时`I`,所得的电离层延时是建立在 L1 信号上的，当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的比率，对上一步得到的电离层延时进行修正。 
+  * 调用`tropcorr()`函数,计算对流层延时`T`。
+  * 调用`prange()`函数，计算经过DCB校正后的伪距值`p`。
+  * 计算伪距残差`v[nv]`，即经过钟差，对流层，电离层改正后的伪距。
+  * 构建设计矩阵 `H`
 
-    ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/8bf06744b5c24e25bb1c543afdaca29b.png)
+    单点定位的测量方程及其偏导数矩阵构成如下：
 
- * 处理不同系统（GPS、GLO、GAL、CMP）之间的时间偏差，修改矩阵`H `。
- * 调用`varerr()`函数，计算此时的导航系统误差
+    $\begin{equation}
+    \mathbf{h(x)} = 
+    \begin{pmatrix} 
+    \rho_r^1 + cdt_r - cdT^1 + I_r^1 + T_r^1 \\ 
+    \rho_r^2 + cdt_r - cdT^2 + I_r^2 + T_r^2 \\ 
+    \rho_r^3 + cdt_r - cdT^3 + I_r^3 + T_r^3 \\ 
+    \vdots \\
+    \rho_r^m + cdt_r - cdT^m + I_r^m + T_r^m 
+    \end{pmatrix} \mathbf{H} = 
+    \begin{pmatrix} 
+    -\mathbf{e}_r^{1^T} & 1 \\ 
+    -\mathbf{e}_r^{2^T} & 1 \\ 
+    -\mathbf{e}_r^{3^T} & 1 \\ 
+    \vdots & \vdots \\ 
+    -\mathbf{e}_r^{m^T} & 1
+    \end{pmatrix} \tag{10.5}
+    \end{equation}$
 
-   * 为了防止不满秩的情况，把矩阵`H`补满秩了，`H[j+nv*NX]=j==i+3?1.0:0.0; `
+    公式摘录自 [RTKLIB Manual](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.6.html)，其中几何距离 $\rho_r^s$ 和视距（LOS）向量 $\mathbf{e}_r^s$ 由 E.3 (3.4) 和 E.3 (3.5) 给出，结合卫星和接收机的位置。卫星位置 $\mathbf{r}^s$ 和钟差 $dT^s$ 则根据配置选项“Satellite Ephemeris/Clock”从 E.4 中描述的GNSS卫星星历和时钟推导而来。
 
-   ```c
-   static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
-                      const double *dts, const double *vare, const int *svh,
-                      const nav_t *nav, const double *x, const prcopt_t *opt,
-                      double *v, double *H, double *var, double *azel, int *vsat,
-                      double *resp, int *ns)
-   {
-       gtime_t time;
-       double r, freq, dion = 0.0, dtrp = 0.0, vmeas, vion = 0.0, vtrp = 0.0, rr[3], pos[3], dtr, e[3], P;
-       int i,j,nv=0,sat,sys,mask[NX-3]={0};
-       
-       trace(3,"resprng : n=%d\n",n);
-       //将之前得到的定位解信息赋值给 rr 和 dtr 数组，以进行关于当前解的伪距残差的相关计算
-       for (i=0;i<3;i++) rr[i]=x[i];
-       dtr=x[3];               
-       
-       ecef2pos(rr,pos);   // rr{x,y,z}->pos{lat,lon,h}     
-       
-       //遍历当前历元所有OBS[]         
-       for (i=*ns=0;i<n&&i<MAXOBS;i++) {
-           vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;   // 将vsat、azel和resp数组置 0，因为在前后两次定位结果中，每颗卫星的上述信息都会发生变化。
-           time=obs[i].time;       // time赋值OBS的时间
-           sat=obs[i].sat;         // sat赋值OBS的卫星
-           if (!(sys=satsys(sat,NULL))) continue;  //调用satsys()函数，验证卫星编号是否合理及其所属的导航系统
-           
-           //检测当前观测卫星是否和下一个相邻数据重复；重复则不处理这一条，去处理下一条
-           /* reject duplicated observation data */
-           if (i<n-1&&i<MAXOBS-1&&sat==obs[i+1].sat) {
-               trace(2,"duplicated obs data %s sat=%d\n",time_str(time,3),sat);
-               i++;
-               continue;
-           }
-           /* excluded satellite? */   //处理选项中事先指定定位时排除哪些导航系统或卫星,调用 satexclude 函数完成
-           if (satexclude(sat,vare[i],svh[i],opt)) continue;
-           //调用 geodist 函数，计算卫星和当前接收机位置之间的几何距离 r和接收机到卫星方向的观测矢量。
-           //然后检验几何距离是否 >0。此函数中会进行地球自转影响的校正（Sagnac效应）
-           /* geometric distance */
-           if ((r=geodist(rs+i*6,rr,e))<=0.0) continue;
-           
-           if (iter>0) {
-               // 调用 satazel 函数，计算在接收机位置处的站心坐标系中卫星的方位角和仰角；若仰角低于截断值，不处理此数据。
-               /* test elevation mask */
-               if (satazel(pos,e,azel+i*2)<opt->elmin) continue;
-               
-               // 调用snrmask()->testsnr()，根据接收机高度角和信号频率来检测该信号是否可用
-               /* test SNR mask */
-               if (!snrmask(obs+i,azel+i*2,opt)) continue;
+  * 处理不同系统（GPS、GLO、GAL、CMP）之间的时间偏差，修改矩阵`H `。
+  * 调用`varerr()`函数，计算此时的导航系统误差
+* 为了防止不满秩的情况，把矩阵`H`补满秩了，`H[j+nv*NX]=j==i+3?1.0:0.0; `
+
+**3. 注意事项**
+
+- 返回值 `v` 和 `resp` 的主要区别在于长度不一致， `v` 是需要参与定位方程组的解算的，维度为 `nv*1` ；而 `resp` 仅表示所有观测卫星（包含不健康的卫星）的伪距残余，维度为 `n*1`，对于没有参与定位的卫星，该值为 0，而 nv 小于 n。
+- 源码中 `dtr` 的单位是 m。
+- 调用`varerr()`函数时候，其中的 `URE` 值包括：
+  - a. 卫星星历和钟差的误差
+  - b. 大气延时误差
+  - c. 伪距测量的码偏移误差
+  - d. 导航系统的误差
+
+::: details 点击查看代码
+```c
+static int rescode(int iter, const obsd_t *obs, int n, const double *rs,
+                 const double *dts, const double *vare, const int *svh,
+                 const nav_t *nav, const double *x, const prcopt_t *opt,
+                 double *v, double *H, double *var, double *azel, int *vsat,
+                 double *resp, int *ns)
+{
+  gtime_t time;
+  double r, freq, dion = 0.0, dtrp = 0.0, vmeas, vion = 0.0, vtrp = 0.0, rr[3], pos[3], dtr, e[3], P;
+  int i,j,nv=0,sat,sys,mask[NX-3]={0};
+  
+  trace(3,"resprng : n=%d\n",n);
+
+  // 将之前得到的定位解信息赋值给 rr 和 dtr 数组，以进行关于当前解的伪距残差的相关计算
+  for (i=0;i<3;i++) rr[i]=x[i];
+  dtr=x[3];               
+  
+  ecef2pos(rr,pos);   // rr{x,y,z}->pos{lat,lon,h}     
+  
+  // 遍历当前历元所有obs[]         
+  for (i=*ns=0;i<n&&i<MAXOBS;i++) {
+      // 将vsat、azel和resp数组置 0，因为在前后两次定位结果中，每颗卫星的上述信息都会发生变化。
+      vsat[i]=0; azel[i*2]=azel[1+i*2]=resp[i]=0.0;   
+      time=obs[i].time;       // time赋值obs的时间
+      sat=obs[i].sat;         // sat赋值obs的卫星
+      
+      // 调用satsys()函数，验证卫星编号是否合理及其所属的导航系统
+      if (!(sys=satsys(sat,NULL))) continue;  
+     
+      // 检测当前观测卫星是否和下一个相邻数据重复；重复则不处理这一条，去处理下一条
+      /* reject duplicated observation data */
+      if (i<n-1&&i<MAXOBS-1&&sat==obs[i+1].sat) {
+          trace(2,"duplicated obs data %s sat=%d\n",time_str(time,3),sat);
+          i++;
+          continue;
+      }
+
+      // 处理选项中事先指定定位时排除哪些导航系统或卫星,调用 satexclude 函数完成
+      /* excluded satellite? */
+      if (satexclude(sat,vare[i],svh[i],opt)) continue;
+
+      // 调用 geodist 函数，计算卫星和当前接收机位置之间的几何距离 r和接收机到卫星方向的观测矢量。
+      // 然后检验几何距离是否 >0。此函数中会进行地球自转影响的校正（Sagnac效应）
+      /* geometric distance */
+      if ((r=geodist(rs+i*6,rr,e))<=0.0) continue;
+     
+      if (iter>0) {
+          // 调用 satazel 函数，计算在接收机位置处的站心坐标系中卫星的方位角和仰角；若仰角低于截断值，不处理此数据。
+          /* test elevation mask */
+          if (satazel(pos,e,azel+i*2)<opt->elmin) continue;
+         
+          // 调用snrmask()->testsnr()，根据接收机高度角和信号频率来检测该信号是否可用
+          /* test SNR mask */
+          if (!snrmask(obs+i,azel+i*2,opt)) continue;
+
+          // 调用 ionocorr 函数，计算电离层延时I,所得的电离层延时是建立在 L1 信号上的，
+          // 当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的关系，对上一步得到的电离层延时进行修正。
+          /* ionospheric correction */
+          if (!ionocorr(time,nav,sat,pos,azel+i*2,opt->ionoopt,&dion,&vion)) {
+              continue;
+          }
+          if ((freq=sat2freq(sat,obs[i].code[0],nav))==0.0) continue;
+          dion*=SQR(FREQ1/freq);
+          vion*=SQR(FREQ1/freq);
+
+          // 调用 tropcorr 函数，计算对流层延时T
+          /* tropospheric correction */
+          if (!tropcorr(time,nav,pos,azel+i*2,opt->tropopt,&dtrp,&vtrp)) {
+              continue;
+          }
+      }
+      // 调用 prange 函数，得到经过DCB校正后的伪距值 ρ
+      /* psendorange with code bias correction */
+      if ((P=prange(obs+i,nav,opt,&vmeas))==0.0) continue;
+      
+      // 伪距残差 //(P-(r+c*dtr-c*dts+I+T))   (E.6.31)
+      /* pseudorange residual */
+      v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);  
+     
+      // 构建设计矩阵H单位向量的反，前 3 行为中计算得到的视线向，第 4 行为 1，其它行为 0
+      /* design matrix */
+      for (j=0;j<NX;j++) {
+          H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
+      }
+     
+      // 处理不同系统（GPS、GLO、GAL、CMP）之间的时间偏差，修改矩阵 H
+      /* time system offset and receiver bias correction */
+      if      (sys==SYS_GLO) {v[nv]-=x[4]; H[4+nv*NX]=1.0; mask[1]=1;}
+      else if (sys==SYS_GAL) {v[nv]-=x[5]; H[5+nv*NX]=1.0; mask[2]=1;}
+      else if (sys==SYS_CMP) {v[nv]-=x[6]; H[6+nv*NX]=1.0; mask[3]=1;}
+      else if (sys==SYS_IRN) {v[nv]-=x[7]; H[7+nv*NX]=1.0; mask[4]=1;}
+#if 0 /* enable QZS-GPS time offset estimation */
+      else if (sys==SYS_QZS) {v[nv]-=x[8]; H[8+nv*NX]=1.0; mask[5]=1;}
+#endif
+      else mask[0]=1;
+     
+      vsat[i]=1; resp[i]=v[nv]; (*ns)++;
+      // 调用 varerr 函数，计算此时的导航系统误差，然后累加计算用户测距误差(URE)。
+      /* variance of pseudorange error */
+      var[nv++]=varerr(opt,azel[1+i*2],sys)+vare[i]+vmeas+vion+vtrp;
+     
+      trace(4,"sat=%2d azel=%5.1f %4.1f res=%7.3f sig=%5.3f\n",obs[i].sat,
+           azel[i*2]*R2D,azel[1+i*2]*R2D,resp[i],sqrt(var[nv-1]));
+  }
+
+  // 防止秩亏：状态中包含不同系统的钟差信息，如果H矩阵不进处理，那么其对应列会出现全0的情况
+  // 注意：H实际是最小二乘设计矩阵的转置
+  /* constraint to avoid rank-deficient */
+  for (i=0;i<NX-3;i++) {
+      if (mask[i]) continue;
+      v[nv]=0.0;
+      for (j=0;j<NX;j++) H[j+nv*NX]=j==i+3?1.0:0.0;  
+      var[nv++]=0.01;
+  }
+
+  // 返回值 v和 resp的主要区别在于长度不一致， v是需要参与定位方程组的解算的，维度为 nv*1；
+  // 而resp仅表示所有观测卫星的伪距残余，维度为 n*1，对于没有参与定位的卫星，该值为 0
+  return nv;
+}
+```
+:::
+
+### 10.3.2 resdop()：定速方程残差计算、设计矩阵构建
+
+计算定速方程组左边的几何矩阵和右端的速度残余，返回定速时所使用的卫星数目。
+
+**1. 参数列表**：
+
+```c
+/* args */
+obsd_t   *obs      I   观测量数据
+int      n         I   观测量数据的数量
+double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
+nav_t    *nav      I   导航数据
+double   *rr       I   接收机位置和速度，长度为6，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
+double   *x        I   本次迭代开始之前的定速值，长度为4，{vx,vy,vz,drift}
+double   *azel     IO  方位角和俯仰角 (rad)
+int      *vsat     I   卫星在定速时是否有效
+double   *v        O   定速方程的右端部分，速度残差
+double   *H        O   定速方程中的几何矩阵
+/* return */
+int                    nv (定速时所使用的卫星数目)
+```
+
+**2. 执行流程**
+
+* 调用`ecef2pos()`函数，将接收机位置由 ECEF-XYZ 转换为大地坐标系LLH，调用`xyz2enu()`函数，计算到ENU坐标转换矩阵`E`。 
+* 遍历当前历元每一个观测值（卫星），即遍历所有卫星：
+  * 去除在定速时不可用的卫星。 
+  * 计算当前接收机位置下 ENU中的视向量`e`，然后用刚刚计算出的转换矩阵`E`转换得到 ECEF 中视向量的值。 
+  * 计算ECEF中卫星相对于接收机的速度，卫星速度`rs[j+3+i*6]`-传入的定速初值`x[j] `。
+  * 计算考虑了地球自转的用户和卫星之间的几何距离变化率`rate `。
+  * 计算`rate`的标准差、残差。
+  * 构建设计矩阵 `H`，将观测方程数 `nv` 加1
+
+    RTKLIB总是使用 $L_1$ 频段的多普勒频率观测值。这些测量方程及其偏导数矩阵构成如下：
+
+    $\begin{equation}
+    \mathbf{h(x)} = \begin{pmatrix}
+    r_r^1 + cd\dot{t}_r - cd\dot{T}^1 \\
+    r_r^2 + cd\dot{t}_r - cd\dot{T}^2 \\
+    r_r^3 + cd\dot{t}_r - cd\dot{T}^3 \\
+    \vdots \\
+    r_r^m + cd\dot{t}_r - cd\dot{T}^m
+    \end{pmatrix} \quad
+    \mathbf{H} = \begin{pmatrix}
+    -\mathbf{e}_r^{1^T} & 1 \\
+    -\mathbf{e}_r^{2^T} & 1 \\
+    -\mathbf{e}_r^{3^T} & 1 \\
+    \vdots & \vdots \\
+    -\mathbf{e}_r^{m^T} & 1
+    \end{pmatrix} \tag{10.6}
+    \end{equation}$
+
+    这些方程中卫星相对于接收机的速度 $\mathbf{r}_r^s$ 从以下公式推导：
+
+    $\begin{equation}
+    \mathbf{r}_r^s = \mathbf{e}_r^{s^T} (\mathbf{v}^s(t^s) - \mathbf{v}_r) + \frac{\omega_e}{c} (v_y^s x_r + y^s v_{x,r} - v_x^s y_r - x^sv_{y,r}) \tag{10.7}
+    \end{equation}$
+
+    其中 $\mathbf{v}^s = (v_x^s, v_y^s, v_z^s)^T$ ， $\mathbf{v}_r = (v_{x,r}, v_{y,r}, v_{z,r})^T$ 。
+
+* 遍历完每一个观测值，返回定数方程数`nv`。
+
+**3. 注意事项**
+
+- **亏秩问题**：这里与定位不同，构建几何矩阵时，就只有4个未知数，而定位时是有 NX 个。并且没有像定位那样为了防止亏秩而进行约束处理。
+- **几何矩阵**：多普勒定速方程中几何矩阵 G 与定位方程中的一样，前三行都是 ECEF 坐标系中由接收机指向卫星的单位观测矢量的反向。而由于转换矩阵 S 本身是一个正交单位矩阵，所以这里在计算 ECEF 中的视向量时，对 E 进行了转置处理。
+- 这里构建的左端几何矩阵 H，也与定位方程中的一样，是大部分资料上的几何矩阵的转置。
+
+:::details 点击查看代码
+```c
+static int resdop(const obsd_t *obs, int n, const double *rs, const double *dts,
+                 const nav_t *nav, const double *rr, const double *x,
+                 const double *azel, const int *vsat, double err, double *v,
+                 double *H)
+{
+   double freq,rate,pos[3],E[9],a[3],e[3],vs[3],cosel,sig;
+   int i,j,nv=0;
    
-               // 调用 ionocorr 函数，计算电离层延时I,所得的电离层延时是建立在 L1 信号上的，
-               // 当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的关系，对上一步得到的电离层延时进行修正。
-               /* ionospheric correction */
-               if (!ionocorr(time,nav,sat,pos,azel+i*2,opt->ionoopt,&dion,&vion)) {
-                   continue;
-               }
-               if ((freq=sat2freq(sat,obs[i].code[0],nav))==0.0) continue;
-               dion*=SQR(FREQ1/freq);
-               vion*=SQR(FREQ1/freq);
+   trace(3,"resdop  : n=%d\n",n);
    
-               //调用 tropcorr 函数，计算对流层延时T
-               /* tropospheric correction */
-               if (!tropcorr(time,nav,pos,azel+i*2,opt->tropopt,&dtrp,&vtrp)) {
-                   continue;
-               }
-           }
-           //调用 prange 函数，得到经过DCB校正后的伪距值 ρ
-           /* psendorange with code bias correction */
-           if ((P=prange(obs+i,nav,opt,&vmeas))==0.0) continue;
-           
-           //伪距残差      //(P-(r+c*dtr-c*dts+I+T))   (E.6.31)
-           /* pseudorange residual */
-           v[nv]=P-(r+dtr-CLIGHT*dts[i*2]+dion+dtrp);  
-           
-           // 组装设计矩阵H单位向量的反，前 3 行为中计算得到的视线向，第 4 行为 1，其它行为 0
-           /* design matrix */
-           for (j=0;j<NX;j++) {
-               H[j+nv*NX]=j<3?-e[j]:(j==3?1.0:0.0);
-           }
-           
-           // 处理不同系统（GPS、GLO、GAL、CMP）之间的时间偏差，修改矩阵 H
-           /* time system offset and receiver bias correction */
-           if      (sys==SYS_GLO) {v[nv]-=x[4]; H[4+nv*NX]=1.0; mask[1]=1;}
-           else if (sys==SYS_GAL) {v[nv]-=x[5]; H[5+nv*NX]=1.0; mask[2]=1;}
-           else if (sys==SYS_CMP) {v[nv]-=x[6]; H[6+nv*NX]=1.0; mask[3]=1;}
-           else if (sys==SYS_IRN) {v[nv]-=x[7]; H[7+nv*NX]=1.0; mask[4]=1;}
-   #if 0 /* enable QZS-GPS time offset estimation */
-           else if (sys==SYS_QZS) {v[nv]-=x[8]; H[8+nv*NX]=1.0; mask[5]=1;}
-   #endif
-           else mask[0]=1;
-           
-           vsat[i]=1; resp[i]=v[nv]; (*ns)++;
-           // 调用 varerr 函数，计算此时的导航系统误差，然后累加计算用户测距误差(URE)。
-           /* variance of pseudorange error */
-           var[nv++]=varerr(opt,azel[1+i*2],sys)+vare[i]+vmeas+vion+vtrp;
-           
-           trace(4,"sat=%2d azel=%5.1f %4.1f res=%7.3f sig=%5.3f\n",obs[i].sat,
-                 azel[i*2]*R2D,azel[1+i*2]*R2D,resp[i],sqrt(var[nv-1]));
+   // 调用 ecef2pos() 函数，将接收机位置由 ECEF 转换为大地坐标系。
+   // 调用 xyz2enu() 函数，计算到ENU坐标转换矩阵 E。
+   ecef2pos(rr,pos); xyz2enu(pos,E);  
+   
+   for (i=0;i<n&&i<MAXOBS;i++) {
+       
+       freq=sat2freq(obs[i].sat,obs[i].code[0],nav);
+       
+       // 去除在定速时不可用的卫星。
+       if (obs[i].D[0]==0.0||freq==0.0||!vsat[i]||norm(rs+3+i*6,3)<=0.0) {
+           continue;
        }
-       //为了防止不满秩的情况，把矩阵H补满秩了
-       /* constraint to avoid rank-deficient */
-       for (i=0;i<NX-3;i++) {
-           if (mask[i]) continue;
-           v[nv]=0.0;
-           for (j=0;j<NX;j++) H[j+nv*NX]=j==i+3?1.0:0.0;  
-           var[nv++]=0.01;
+       // 计算当前接收机位置下 ENU 中的视向量 e，然后转换得到 ECEF 中视向量的值。
+       /* LOS (line-of-sight) vector in ECEF */    
+       cosel=cos(azel[1+i*2]);
+       a[0]=sin(azel[i*2])*cosel;
+       a[1]=cos(azel[i*2])*cosel;
+       a[2]=sin(azel[1+i*2]);              
+       matmul("TN",3,1,3,1.0,E,a,0.0,e);   
+       
+       // 计算 ECEF 中卫星相对于接收机的速度，卫星速度rs[j+3+i*6]-传入的定速初值x[j]
+       /* satellite velocity relative to receiver in ECEF */
+       for (j=0;j<3;j++) {         
+           vs[j]=rs[j+3+i*6]-x[j]; 
+       }                           
+
+       // 计算考虑了地球自转的用户和卫星之间的几何距离变化率
+       /* range rate with earth rotation correction */
+       rate=dot(vs,e,3)+OMGE/CLIGHT*(rs[4+i*6]*rr[0]+rs[1+i*6]*x[0]-
+                 rs[3+i*6]*rr[1]-rs[  i*6]*x[1]);	//(F.6.29)
+
+       /* Std of range rate error (m/s) */     
+       sig=(err<=0.0)?1.0:err*CLIGHT/freq;     
+       
+       /* range rate residual (m/s) */
+       v[nv]=(-obs[i].D[0]*CLIGHT/freq-(rate+x[3]-CLIGHT*dts[1+i*2]))/sig;
+       
+       /* design matrix */ // 构建左端项的几何矩阵
+       for (j=0;j<4;j++) {
+           H[j+nv*4]=((j<3)?-e[j]:1.0)/sig; // (E.6.28)
        }
-       return nv;
-       //返回值 v和 resp的主要区别在于长度不一致， v是需要参与定位方程组的解算的，维度为 nv*1；
-       //而resp仅表示所有观测卫星的伪距残余，维度为 n*1，对于没有参与定位的卫星，该值为 0
+       nv++; // 将观测方程数增 1
    }
-   ```
+   return nv;
+}
+```
+:::
 
-3. **调用函数**：
+### 10.3.3 varerr()：计算导航系统伪距测量值的误差
 
-#### 1.satsys()：传入卫星satellite number，返回卫星系统
+`varerr()`一定程度上代表了误差的水平，该函数是衡量载波相位误差的函数，通过fact因子（如300）可以放缩到伪距误差的水平。对于权重矩阵 $\mathbf{W}$ ，RTKLIB使用以下公式：
 
-#### 2.satexclude()：检测某颗卫星在定位时是否需要将其排除
+$\begin{equation}
+\mathbf{W} = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2}) \tag{10.7}
+\end{equation}$
 
-根据svh、导航系统设置，导航卫星设置。排除返回1。
+$\begin{equation}
+\sigma^2 = {F^s}^2 R_r^2 \left(a_\sigma^2 + b_\sigma^2 / \sin El_r^s \right) + \sigma_{eph}^2 + \sigma_{ion}^2 + \sigma_{trop}^2 + \sigma_{bias}^2 \tag{10.8}
+\end{equation}$
 
- ```c
- extern int satexclude(int sat, double var, int svh, const prcopt_t *opt)
- {
-     int sys=satsys(sat,NULL);
-     
-     if (svh<0) return 1; /* ephemeris unavailable */    //通过svh判断卫星是否健康可用
-     
-     if (opt) {
-         if (opt->exsats[sat-1]==1) return 1; /* excluded satellite */
-         if (opt->exsats[sat-1]==2) return 0; /* included satellite */
-         if (!(sys&opt->navsys)) return 1; /* unselected sat sys */  //比较该卫星与预先规定的导航系统是否一致
-     }
-     if (sys==SYS_QZS) svh&=0xFE; /* mask QZSS LEX health */
-     if (svh) {
-         trace(3,"unhealthy satellite: sat=%3d svh=%02X\n",sat,svh);
-         return 1;
-     }
-     if (var>MAX_VAR_EPH) {
-         trace(3,"invalid ura satellite: sat=%3d ura=%.2f\n",sat,sqrt(var));
-         return 1;
-     }
-     return 0;
- }
- ```
+其中：
 
-#### 3. geodist()：计算站心几何距离
+$F^s$：卫星系统误差因子<br>
+（1: GPS, Galileo, QZSS和Beidou, 1.5: GLONASS, 3.0: SBAS）<br>
+$R_r$：码/载波相位误差比率，伪距定位和载波相位定位使用的是同样的加权公式，这里以载波相位为基础，然后通过系数转换到了伪距上<br>
+$a_\sigma, b_\sigma$：载波相位误差因子 $a$ 和 $b$（m）<br>
+$\sigma_{eph}$：星历和钟差标准差（m）<br>
+$\sigma_{ion}$：电离层校正模型误差标准差（m）<br>
+$\sigma_{trop}$：对流层校正模型误差标准差（m）<br>
+$\sigma_{bias}$：码偏差误差标准差（m）
+
+**1. 参数列表**
+
+```c
+/* args */
+prcopt_t  *opt    I   processing options
+double     el     I   elevation angle (rad)
+int        sys    I   所属的导航系统
+/* return */
+double                varr (导航系统伪距测量值的误差)
+```
+
+**2. 执行流程**
+
+- 确定 sys系统的误差因子。
+- 计算由导航系统本身所带来的误差的方差。
+- 如果 ionoopt==IONOOPT_IFLC时，IFLC模型的方差也会添加到最终计算得到的方差中。
+
+**3. 问题思考**
+
+- IFLC 模型的方差为什么使用 `varr*=SQR(3.0)` 计算？该部分参考附录B.4。
+
+::: details 点击查看代码
+```c
+/* 这里的代码使用的是demo5版本 */
+static double varerr(const prcopt_t *opt, const ssat_t *ssat, const obsd_t *obs, double el, int sys)
+{
+    double fact=1.0,varr,snr_rover;
+
+    switch (sys) {
+        case SYS_GPS: fact *= EFACT_GPS; break; // fact=1.0
+        case SYS_GLO: fact *= EFACT_GLO; break; // fact=1.5
+        case SYS_SBS: fact *= EFACT_SBS; break; // fact=3.0
+        case SYS_CMP: fact *= EFACT_CMP; break; // fact=1.0
+        case SYS_QZS: fact *= EFACT_QZS; break; // fact=1.0
+        case SYS_IRN: fact *= EFACT_IRN; break; // fact=1.5
+        default:      fact *= EFACT_GPS; break; // fact=1.0
+    }
+
+    // 高度角过小，设为5°
+    if (el<MIN_EL) el=MIN_EL;
+
+    /* var = R^2*(a^2 + (b^2/sin(el) + c^2*(10^(0.1*(snr_max-snr_rover)))) + (d*rcv_std)^2) */
+    varr=SQR(opt->err[1])+SQR(opt->err[2])/sin(el);
+    if (opt->err[6]>0.0) {  /* if snr term not zero */
+        snr_rover=(ssat)?SNR_UNIT*ssat->snr_rover[0]:opt->err[5];
+        varr+=SQR(opt->err[6])*pow(10,0.1*MAX(opt->err[5]-snr_rover,0));
+    }
+    varr*=SQR(opt->eratio[0]);
+    if (opt->err[7]>0.0) {
+        varr+=SQR(opt->err[7]*0.01*(1<<(obs->Pstd[0]+5)));  /* 0.01*2^(n+5) m */
+    }
+
+    /* iono-free */ // 无电离层组合，方差*3*3
+    if (opt->ionoopt==IONOOPT_IFLC) varr*=SQR(3.0);
+
+    return SQR(fact)*varr;
+}
+```
+:::
+
+### 10.3.4 prange()：计算经过DCB校正后的伪距值`p`
+
+差分码偏差（DCB）是 GNSS 伪距观测中由不同测距码信号（如 C1、P1、P2）在卫星和接收机硬件通道中产生的时延差异。分为：
+
+- **频内偏差**：同一频率不同码的时延差，如 P1-C1。
+- **频间偏差**：不同频率码的时延差，如 P1-P2。
+
+DCB 由信号生成至发射的硬件时延差异引起，校正 DCB 可提高 GNSS 定位精度。
+
+**1. 参数列表**
+
+```c
+/* args */
+obsd_t    *obs      I   观测数据
+nav_t     *nav      I   导航数据
+double    *azel     I   对于当前定位值，每一颗观测卫星的 {方位角、高度角}
+int        iter     I   迭代次数
+prcopt_t  *opt      I   配置参数
+double    *vare     O   伪距测量的码偏移误差
+/* return */
+double                  P1 (最终参与定位解算的伪距值)
+```
+
+**2. 执行流程**
+
+::: details 点击查看更多
+- 初始化和基本检查
+  - 获取卫星编号和系统类型（如 GPS、GLONASS）。
+  - 获取 L1/E1/B1 伪距（P1）和第二频率伪距（P2，由 seliflc 选择，如 L2、L5）。
+  - 初始化方差 *var = 0.0。
+  - 检查观测值有效性：若 P1 为 0 或 IFLC 模式下 P2 为 0，返回 0.0（无效观测）。
+- DCB 校正
+  - L1/E1/B1 校正：通过 code2bias_ix 获取 L1 频率测距码的 DCB 索引（bias_ix），若非参考码（bias_ix > 0），校正 P1。
+  - L2/L5 校正：对第二频率伪距（P2）进行类似校正，但 Galileo 的 L2（f2 == 1）无 DCB 数据，跳过校正。
+  - DCB 数据存储在 nav->cbias，按系统、频率和码类型索引。
+- 双频无电离层组合（IFLC）
+  - GPS/QZSS（L1-L2 或 L1-L5）
+    ```c
+    // 使用 L1/L2（FREQL1/FREQL2）或 L1/L5（FREQL1/FREQL5）频率比的平方
+    gamma = f2 == 1 ? SQR(FREQL1/FREQL2) : SQR(FREQL1/FREQL5);
+    return (P2 - gamma * P1) / (1.0 - gamma);
+    ```
+  - GLONASS（G1-G2 或 G1-G3）
+    ```c
+    // 使用 GLONASS 频率（如 G1/G2 或 G1/G3）
+    gamma = f2 == 1 ? SQR(FREQ1_GLO/FREQ2_GLO) : SQR(FREQ1_GLO/FREQ3_GLO);
+    return (P2 - gamma * P1) / (1.0 - gamma);
+    ```
+  - Galileo（E1-E5b 或 E1-E5a）
+    ```c
+    // 使用 E1/E5b 或 E1/E5a 频率比。
+    // 对 F/NAV 星历（getseleph(SYS_GAL)），校正 E5a/E5b 的广播群延迟（BGD）。
+    gamma = f2 == 1 ? SQR(FREQL1/FREQE5b) : SQR(FREQL1/FREQL5);
+    if (f2 == 1 && getseleph(SYS_GAL)) {
+        P2 -= gettgd(sat, nav, 0) - gettgd(sat, nav, 1); /* BGD_E5aE5b */
+    }
+    return (P2 - gamma * P1) / (1.0 - gamma);
+    ```
+  - BeiDou（B1-B2）
+    ```c
+    // 支持 B1I/B1Cp/B1Cd 码，校正 TGD（b1, b2）
+    // 公式包含 TGD 校正：$P_{IF} = \frac{(P_2 - b_2) - \gamma (P_1 - b_1)}{1 - \gamma}$
+    gamma = SQR(((obs->code[0] == CODE_L2I) ? FREQ1_CMP : FREQL1) / FREQ2_CMP);
+    if (obs->code[0] == CODE_L2I) b1 = gettgd(sat, nav, 0); /* TGD_B1I */
+    else if (obs->code[0] == CODE_L1P) b1 = gettgd(sat, nav, 2); /* TGD_B1Cp */
+    else b1 = gettgd(sat, nav, 2) + gettgd(sat, nav, 4); /* TGD_B1Cp+ISC_B1Cd */
+    b2 = gettgd(sat, nav, 1); /* TGD_B2I/B2bI (m) */
+    return ((P2 - gamma * P1) - (b2 - gamma * b1)) / (1.0 - gamma);
+    ```
+  - IRNSS（L5-S）
+- 单频伪距校正
+  当非 IFLC 模式（单频），直接使用 L1/E1/B1 伪距，并校正 TGD：
+  - GPS/QZSS：校正 L1 的 TGD（b1）。
+  - GLONASS：校正 G1 的 TGD，考虑频率比 $\gamma$。
+  - Galileo：校正 E1 的 BGD（E1-E5a 或 E1-E5b）。
+  - BeiDou：根据码类型（B1I/B1Cp/B1Cd）校正 TGD。
+  - IRNSS：校正 L5 的 TGD，考虑频率比。
+  - 方差设为 SQR(ERR_CBIAS)，表示单频伪距的码偏差误差。
+:::
+
+**3. 注意事项**
+
+- **prange 的直接作用**： 主要是是计算 GNSS 伪距观测值，经过差分码偏差（DCB）校正、广播群延迟（TGD/BGD）校正，并根据用户选项（`opt->ionoopt`）选择 无电离层线性组合（IFLC） 或 单频伪距 的处理方式。该函数并不直接针对 C/A 码（如 C1）进行特定修正，而是对所有测距码（如 C1、P1、P2 等）应用通用的 DCB 和 TGD 校正，以消除硬件时延和电离层效应。
+
+:::details 点击查看代码
+```c
+/* 计算伪距（无电离层组合或单频），包含DCB和TGD/BGD校正 */
+static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
+                     double *var)
+{
+    double P1, P2, gamma, b1, b2; /* P1, P2: 伪距; gamma: 频率比平方; b1, b2: TGD/BGD */
+    int sat, sys, f2, bias_ix;    /* sat: 卫星编号; sys: 系统类型; f2: 第二频率索引; bias_ix: DCB索引 */
+
+    /* 初始化变量 */
+    sat = obs->sat;                           /* 获取卫星编号 */
+    sys = satsys(sat, NULL);                  /* 获取卫星系统（如GPS、GLONASS） */
+    P1 = obs->P[0];                           /* 获取L1/E1/B1伪距 */
+    f2 = seliflc(opt->nf, satsys(obs->sat, NULL)); /* 选择第二频率（如L2、L5） */
+    P2 = obs->P[f2];                          /* 获取L2/L5/E5等伪距 */
+    *var = 0.0;                               /* 初始化方差 */
+
+    /* 检查观测值有效性：P1为0或IFLC模式下P2为0，返回0.0 */
+    if (P1 == 0.0 || (opt->ionoopt == IONOOPT_IFLC && P2 == 0.0)) return 0.0;
+
+    /* 校正L1/E1/B1的DCB（频内偏差，如P1-C1） */
+    bias_ix = code2bias_ix(sys, obs->code[0]); /* 获取L1测距码的DCB索引 */
+    if (bias_ix > 0) {                         /* 非参考码（bias_ix=0为参考码） */
+        P1 += nav->cbias[sat-1][0][bias_ix-1]; /* 应用L1 DCB校正 */
+    }
+
+    /* 校正L2/L5/E5的DCB（频内偏差，如P2-C2） */
+    if (sys == SYS_GAL && f2 == 1) {
+        /* Galileo L2无DCB数据，跳过校正 */
+    } else {
+        bias_ix = code2bias_ix(sys, obs->code[f2]); /* 获取第二频率测距码的DCB索引 */
+        if (bias_ix > 0) {                          /* 非参考码 */
+            P2 += nav->cbias[sat-1][1][bias_ix-1];  /* 应用L2/L5 DCB校正 */
+        }
+    }
+
+    /* 双频无电离层组合（IFLC）处理 */
+    if (opt->ionoopt == IONOOPT_IFLC) {
+        if (sys == SYS_GPS || sys == SYS_QZS) { /* GPS/QZSS: L1-L2或L1-L5 */
+            gamma = f2 == 1 ? SQR(FREQL1/FREQL2) : SQR(FREQL1/FREQL5); /* 计算频率比平方 */
+            *var = SQR(3.0) * SQR(ERR_CBIAS); /* 近似方差放大（噪声放大因子≈3.0） */
+            return (P2 - gamma * P1) / (1.0 - gamma); /* IFLC公式 */
+        } else if (sys == SYS_GLO) { /* GLONASS: G1-G2或G1-G3 */
+            gamma = f2 == 1 ? SQR(FREQ1_GLO/FREQ2_GLO) : SQR(FREQ1_GLO/FREQ3_GLO);
+            *var = SQR(3.0) * SQR(ERR_CBIAS); /* 近似方差放大 */
+            return (P2 - gamma * P1) / (1.0 - gamma);
+        } else if (sys == SYS_GAL) { /* Galileo: E1-E5b或E1-E5a */
+            gamma = f2 == 1 ? SQR(FREQL1/FREQE5b) : SQR(FREQL1/FREQL5);
+            if (f2 == 1 && getseleph(SYS_GAL)) { /* F/NAV星历，校正BGD */
+                P2 -= gettgd(sat, nav, 0) - gettgd(sat, nav, 1); /* BGD_E5aE5b */
+            }
+            *var = SQR(3.0) * SQR(ERR_CBIAS); /* 近似方差放大 */
+            return (P2 - gamma * P1) / (1.0 - gamma);
+        } else if (sys == SYS_CMP) { /* BeiDou: B1-B2 */
+            gamma = SQR(((obs->code[0] == CODE_L2I) ? FREQ1_CMP : FREQL1) / FREQ2_CMP);
+            if (obs->code[0] == CODE_L2I) b1 = gettgd(sat, nav, 0); /* TGD_B1I */
+            else if (obs->code[0] == CODE_L1P) b1 = gettgd(sat, nav, 2); /* TGD_B1Cp */
+            else b1 = gettgd(sat, nav, 2) + gettgd(sat, nav, 4); /* TGD_B1Cp+ISC_B1Cd */
+            b2 = gettgd(sat, nav, 1); /* TGD_B2I/B2bI */
+            *var = SQR(3.0) * SQR(ERR_CBIAS); /* 近似方差放大 */
+            return ((P2 - gamma * P1) - (b2 - gamma * b1)) / (1.0 - gamma); /* IFLC含TGD校正 */
+        } else if (sys == SYS_IRN) { /* IRNSS: L5-S */
+            gamma = SQR(FREQL5/FREQs);
+            *var = SQR(3.0) * SQR(ERR_CBIAS); /* 近似方差放大 */
+            return (P2 - gamma * P1) / (1.0 - gamma);
+        }
+    } else { /* 单频（L1/E1/B1）处理 */
+        *var = SQR(ERR_CBIAS); /* 单频方差，基于码偏差误差 */
+        if (sys == SYS_GPS || sys == SYS_QZS) { /* GPS/QZSS: L1 */
+            b1 = gettgd(sat, nav, 0); /* TGD */
+            return P1 - b1;
+        } else if (sys == SYS_GLO) { /* GLONASS: G1 */
+            gamma = SQR(FREQ1_GLO/FREQ2_GLO);
+            b1 = gettgd(sat, nav, 0); /* -dtaun */
+            return P1 - b1 / (gamma - 1.0);
+        } else if (sys == SYS_GAL) { /* Galileo: E1 */
+            if (getseleph(SYS_GAL)) b1 = gettgd(sat, nav, 0); /* BGD_E1E5a */
+            else b1 = gettgd(sat, nav, 1); /* BGD_E1E5b */
+            return P1 - b1;
+        } else if (sys == SYS_CMP) { /* BeiDou: B1I/B1Cp/B1Cd */
+            if (obs->code[0] == CODE_L2I) b1 = gettgd(sat, nav, 0); /* TGD_B1I */
+            else if (obs->code[0] == CODE_L1P) b1 = gettgd(sat, nav, 2); /* TGD_B1Cp */
+            else b1 = gettgd(sat, nav, 2) + gettgd(sat, nav, 4); /* TGD_B1Cp+ISC_B1Cd */
+            return P1 - b1;
+        } else if (sys == SYS_IRN) { /* IRNSS: L5 */
+            gamma = SQR(FREQs/FREQL5);
+            b1 = gettgd(sat, nav, 0); /* TGD */
+            return P1 - gamma * b1;
+        }
+    }
+    return P1; /* 默认返回L1伪距 */
+}
+```
+:::
+
+### 10.3.5 sat2freq()：获取频率
+
+传入satellite number和obs code，返回载波频率 。
+
+## 10.4 坐标与几何距离
+
+### 10.4.1 geodist()：计算站心几何距离
 
 地球自转引起的误差是信号传输过程中 GNSS 卫星信号发射时刻和接收机接收到信号的时刻之间地球自转对 GNSS 观测值产生的影响。相当于地球自转使得卫星空间位置在信号播发、收到的过程中接收机在地固系坐标轴上相对于 $\mathrm{Z}$ 轴发生了一定角度的旋转，使得 GNSS 卫星的在信号发射时刻的位置发生了变化，也称为 Sagnac 效应。
 
@@ -463,20 +1397,20 @@ $$
 $$
 
 ```c
- extern double geodist(const double *rs, const double *rr, double *e)
- {
-     double r;
-     int i;
-     
-     if (norm(rs,3)<RE_WGS84) return -1.0;   // 检查卫星到 WGS84坐标系原点的距离是否大于基准椭球体的长半径。
-     for (i=0;i<3;i++) e[i]=rs[i]-rr[i];     // 求卫星和接收机坐标差e[]
-     r=norm(e,3);                            // 求未经萨格纳克效应改正的距离
-     for (i=0;i<3;i++) e[i]/=r;  // 接收机到卫星的单位向量e[]	(E.3.9)
-     return r+OMGE*(rs[0]*rr[1]-rs[1]*rr[0])/CLIGHT; 	//(E.3.8b)
- }
+extern double geodist(const double *rs, const double *rr, double *e)
+{
+    double r;
+    int i;
+    
+    if (norm(rs,3)<RE_WGS84) return -1.0;   // 检查卫星到 WGS84坐标系原点的距离是否大于基准椭球体的长半径。
+    for (i=0;i<3;i++) e[i]=rs[i]-rr[i];     // 求卫星和接收机坐标差e[]
+    r=norm(e,3);                            // 求未经萨格纳克效应改正的距离
+    for (i=0;i<3;i++) e[i]/=r;  // 接收机到卫星的单位向量e[]	(E.3.9)
+    return r+OMGE*(rs[0]*rr[1]-rs[1]*rr[0])/CLIGHT; 	//(E.3.8b)
+}
 ```
 
-#### 4. satazel()：计算方位角、高度角
+### 10.4.2 satazel()：计算方位角、高度角
 
 ![image-20231028163827373](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231028163827373.png)
 
@@ -502,410 +1436,7 @@ extern double satazel(const double *pos, const double *e, double *azel)
 }
 ```
 
-#### 5. snrmask()：检测信号是否可用
-
-调用`testsnr()`，根据接收机高度角和信号频率来检测该信号是否可用
-
- ```c
- static int snrmask(const obsd_t *obs, const double *azel, const prcopt_t *opt)
- {
-     if (testsnr(0,0,azel[1],obs->SNR[0]*SNR_UNIT,&opt->snrmask)) {
-         return 0;
-     }
-     if (opt->ionoopt==IONOOPT_IFLC) {   //消电离层组合
-         if (testsnr(0,1,azel[1],obs->SNR[1]*SNR_UNIT,&opt->snrmask)) return 0;
-     }
-     return 1;
- }
- ```
-
- ```c
- extern int testsnr(int base, int idx, double el, double snr,
-                    const snrmask_t *mask)
- {
-     double minsnr,a;
-     int i;
-     
-     if (!mask->ena[base]||idx<0||idx>=NFREQ) return 0;
-     
-     a=(el*R2D+5.0)/10.0;
-     i=(int)floor(a); a-=i;
-     if      (i<1) minsnr=mask->mask[idx][0];
-     else if (i>8) minsnr=mask->mask[idx][8];
-     else minsnr=(1.0-a)*mask->mask[idx][i-1]+a*mask->mask[idx][i];  // 1<=i<=8的情况，则使用线性插值计算出 minsnr的值
-     
-     return snr<minsnr;  //snr小于minsnr时，返回1
- }
- ```
-​     
-#### 7.sat2freq()：传入satellite number和obs code，返回载波频率 。
-
-#### 8.prange()：计算经过DCB校正后的伪距值`p`
-
-DCB差分码偏差，针对伪距，是由不同类型的GNSS信号在卫星和接收机不同通道产生的时间延迟（硬件延迟／码偏差）差异 。由于卫星播发的测距码类型很多， C1、 P1、 P2 等 ，不同的测距信号虽然 在同一台卫星钟的驱动下生成的，因而花费的时间也不同。我们把卫星钟脉冲驱动下开始生成测距信号至信号生成并最终离开卫星发射天线相位中心之间所花费的时间称为信号在卫星内部的时延。DCB体现的就是不同码信号时延的差。分为：
-* 频内偏差：相同频率不同码之间存在的偏差（如P1-C1、P2-C2等）
- * 频间偏差：不同频率之间存在的偏差（如P1-P2）
-
-#### 9.varerr()：计算导航系统伪距测量值的误差
-
-E6.24 的第一项
-
- > 疑似 bugs：定权公式sin(el)没有开方
- >
- > `varr=SQR(opt->err[0])*(SQR(opt->err[1])+SQR(opt->err[2])/sin(el)); `
-
- ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/248db84257404da2a8b5ffce367b9bd0.png)
-
- ```c
- static double varerr(const prcopt_t *opt, double el, int sys)
- {
-     double fact,varr;
-     fact=sys==SYS_GLO?EFACT_GLO:(sys==SYS_SBS?EFACT_SBS:EFACT_GPS);
-     //两个三目运算符，如果是GLONASS fact值为1.5，如果是SBAS fact值为3，其它fact值为1
-     if (el<MIN_EL) el=MIN_EL;   //高度角过小，设为5°
-     varr=SQR(opt->err[0])*(SQR(opt->err[1])+SQR(opt->err[2])/sin(el));      //sin(el)没开方，疑似bug
-     if (opt->ionoopt==IONOOPT_IFLC) varr*=SQR(3.0); /* iono-free */ //消电离层组合，方差*3*3
-     return SQR(fact)*varr;
- }
- ```
-
-### 10.1.4 valsol()：对定位结果进行卡方检验和GDOP检验 
-
-> 低成本接收机可能通不过检验，可禁用此函数
-
-1. **传入参数**：
-
-   ```c
-   const double *azel  方位角、高度角
-   const int *vsat     观测卫星在当前定位时是否有效 (1*n)
-   int n               观测值个数
-   const prcopt_t *opt 处理选项
-   const double *v     定位方程的右端部分，伪距残差
-   int nv              观测值数
-   int nx              待估计参数数
-   char *msg           错误消息
-   ```
-
-2. **执行流程**：
-
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/face23db0e654a57b7388aa34f390566.png)
-
-
-   ```c
-   static int valsol(const double *azel, const int *vsat, int n,
-                     const prcopt_t *opt, const double *v, int nv, int nx,
-                     char *msg)
-   {
-       double azels[MAXOBS*2],dop[4],vv;
-       int i,ns;
-       
-       trace(3,"valsol  : n=%d nv=%d\n",n,nv);
-       
-       /* Chi-square validation of residuals */    //对残差卡方检验
-       vv=dot(v,v,nv);		//chisqr:卡方值表
-       if (nv>nx&&vv>chisqr[nv-nx-1]) {        //(E.6.33) 且观测值数大于待估计参数数  nv-nx-1:多余观测数
-           sprintf(msg,"chi-square error nv=%d vv=%.1f cs=%.1f",nv,vv,chisqr[nv-nx-1]);
-           return 0;
-       }
-   
-       /* large GDOP check */  //GDOP检验
-       for (i=ns=0;i<n;i++) {
-           if (!vsat[i]) continue;
-           azels[  ns*2]=azel[  i*2];
-           azels[1+ns*2]=azel[1+i*2];
-           ns++;
-       }
-       dops(ns,azels,opt->elmin,dop);              
-       if (dop[0]<=0.0||dop[0]>opt->maxgdop) {     //(E.6.34)
-           sprintf(msg,"gdop error nv=%d gdop=%.1f",nv,dop[0]);
-           return 0;
-       }
-       return 1;
-   }
-   ```
-
-### 10.1.5 raim_fde()：接收机自主完好性检测与故障检测排除
-通过每次排除一颗卫星计算，选取残差最小的一次作为最终解算结果，此时对应的卫星就是故障卫星 
-
-1. **传入参数**：
-
-   ```c
-   const obsd_t *obs       OBS观测数据
-   int n                   观测数据的数量
-   const double *rs        卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-   const double *dts       卫星钟差，长度为2*n， {bias,drift} (s|s/s)
-   const double *vare      卫星位置和钟差的协方差 (m^2)
-   const int *svh          卫星健康标志 (-1:correction not available)
-   const nav_t *nav        导航数据
-   const prcopt_t *opt     处理过程选项
-   sol_t *sol              solution
-   double *azel            方位角和俯仰角 (rad)
-   int *vsat               卫星在定位时是否有效
-   double *resp            观测卫星的伪距残差，(P-(r+c*dtr-c*dts+I+T)) (1*n)
-   char *msg               错误信息
-   ```
-
-2. **执行流程**：
-
-   * for循环，遍历每颗卫星，`i`表示最外面的大循环，每次将将第` i`颗卫星舍弃不用 ，`j`表示剩余使用的卫星的循环，每次进行相应数据的赋值，`k`表示参与定位的卫星的循环，与` j`一起使用。
-   * 舍弃第 i 颗卫星后，将剩下卫星的数据复制到一起。
-   * 调用`estpos()`函数计算使用剩下卫星进行定位的定位值。
-   * 累加得到当前卫星实现定位后的伪距残差平方和`rms_e`与可用卫星数目`nvsat`。
-   * 如果 `nvsat<5`，则说明当前卫星数目过少，无法进行 RAIM_FDE 操作 
-   * 计算伪距残差平方和的标准差`rms_e`
-   * 如果伪距残差平方和的标准差`rms_e`>`rms`,继续下一次循环 
-   * 如果小于 `rms`，则说明当前定位结果更合理，将 `stat` 置为 1，重新更新 `sol`、`azel`、`vsat`(当前被舍弃的卫星，此值置为0)、`resp`等值，并将当前的`rms_e`更新到 `rms` 中，用于下一次判断。
-   * 遍历完所有卫星后， 如果stat`不为 0，则说明在弃用卫星的前提下有更好的解出现，输出信息，trace中指出弃用了哪颗卫星。 
-
-   ```c
-   static int raim_fde(const obsd_t *obs, int n, const double *rs,
-                       const double *dts, const double *vare, const int *svh,
-                       const nav_t *nav, const prcopt_t *opt, sol_t *sol,
-                       double *azel, int *vsat, double *resp, char *msg)
-   {
-       obsd_t *obs_e;
-       sol_t sol_e={{0}};
-       char tstr[32],name[16],msg_e[128];
-       double *rs_e,*dts_e,*vare_e,*azel_e,*resp_e,rms_e,rms=100.0;
-       int i,j,k,nvsat,stat=0,*svh_e,*vsat_e,sat=0;
-       
-       trace(3,"raim_fde: %s n=%2d\n",time_str(obs[0].time,0),n);
-       
-       if (!(obs_e=(obsd_t *)malloc(sizeof(obsd_t)*n))) return 0;
-       rs_e = mat(6,n); dts_e = mat(2,n); vare_e=mat(1,n); azel_e=zeros(2,n);
-       svh_e=imat(1,n); vsat_e=imat(1,n); resp_e=mat(1,n); 
-       
-       //大循环是每次舍弃第 i 颗卫星。
-       //i表示最外面的大循环，每次将将第 i颗卫星舍弃不用，这是通过 if (j==i) continue实现的
-       //j表示剩余使用的卫星的循环，每次进行相应数据的赋值
-       //k表示参与定位的卫星的循环，与 j一起使用
-       for (i=0;i<n;i++) {
-           //舍弃第 i 颗卫星后，将剩下卫星的数据复制到一起
-           /* satellite exclution */
-           for (j=k=0;j<n;j++) {
-               if (j==i) continue;
-               obs_e[k]=obs[j];
-               matcpy(rs_e +6*k,rs +6*j,6,1);
-               matcpy(dts_e+2*k,dts+2*j,2,1);
-               vare_e[k]=vare[j];
-               svh_e[k++]=svh[j];
-           }
-           //调用 estpos 函数计算使用剩下卫星进行定位的定位值。
-           /* estimate receiver position without a satellite */
-           if (!estpos(obs_e,n-1,rs_e,dts_e,vare_e,svh_e,nav,opt,&sol_e,azel_e,
-                       vsat_e,resp_e,msg_e)) {
-               trace(3,"raim_fde: exsat=%2d (%s)\n",obs[i].sat,msg);
-               continue;
-           }
-           //累加得到当前卫星实现定位后的伪距残差平方和与可用卫星数目
-           for (j=nvsat=0,rms_e=0.0;j<n-1;j++) {
-               if (!vsat_e[j]) continue;
-               rms_e+=SQR(resp_e[j]);
-               nvsat++;
-           }
-           if (nvsat<5) {  //如果 nvsat<5，则说明当前卫星数目过少，无法进行 RAIM_FDE 操作
-               trace(3,"raim_fde: exsat=%2d lack of satellites nvsat=%2d\n",
-                     obs[i].sat,nvsat);
-               continue;
-           }
-           rms_e=sqrt(rms_e/nvsat);    //计算伪距残差平方和的标准差rms_e
-           
-           trace(3,"raim_fde: exsat=%2d rms=%8.3f\n",obs[i].sat,rms_e);
-           
-           if (rms_e>rms) continue;    //如果伪距残差平方和的标准差rms_e>rms,继续下一次循环
-           
-           //如果小于 rms，则说明当前定位结果更合理，将 stat 置为 1，
-           //重新更新 sol、azel、vsat(当前被舍弃的卫星，此值置为0)、resp等值，并将当前的 rms_e更新到 rms 中。
-           /* save result */
-           for (j=k=0;j<n;j++) {
-               if (j==i) continue;
-               matcpy(azel+2*j,azel_e+2*k,2,1);
-               vsat[j]=vsat_e[k];
-               resp[j]=resp_e[k++];
-           }
-           stat=1;
-           *sol=sol_e;
-           sat=obs[i].sat;
-           rms=rms_e;
-           vsat[i]=0;
-           strcpy(msg,msg_e);
-       }
-       //如果 stat不为 0，则说明在弃用卫星的前提下有更好的解出现，输出信息，指出弃用了哪颗卫星。
-       if (stat) { 
-           time2str(obs[0].time,tstr,2); satno2id(sat,name);
-           trace(2,"%s: %s excluded by raim\n",tstr+11,name);
-       }
-       free(obs_e);
-       free(rs_e ); free(dts_e ); free(vare_e); free(azel_e);
-       free(svh_e); free(vsat_e); free(resp_e);
-       return stat;
-   }
-   ```
-
-### 10.1.6 estvel()：多普勒计算接收机速度
-
-> 听说速度估计有bug？
-
-1. **传入参数**：
-
-   ```c
-   obsd_t *obs        I   OBS观测数据
-   int      n         I   观测数据的数量
-   double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-   double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
-   nav_t    *nav      I   导航数据
-   prcopt_t *opt      I   处理过程选项
-   sol_t    *sol      IO  solution
-   double   *azel     IO  方位角和俯仰角 (rad)
-   int      *vsat     IO  卫星在定位时是否有效
-   ```
-
-2. 执行流程：
-
-   * 定速的初始值直接给定为 0 ，而不像定位时初值选上一历元的的位置。
-   * for循环迭代计算，最大迭代次数（默认10次）
-     * 调用`resdop()`，计算定速方程组左边的几何矩阵和右端的速度残余，返回定速时所使用的卫星数目
-     * 调用最小二乘法`lsq()`函数，解出{速度、频漂}的改正量`dx`，累加到`x`中。 
-     * 检查当前计算出的改正量的绝对值是否小于 1E-6 ，是：则说明当前解已经很接近真实值了，将接收机三个方向上的速度、协方差存入到 sol->rr 中 。否：进行下一次循环。
-
-   ```c
-   static void estvel(const obsd_t *obs, int n, const double *rs, const double *dts,
-                      const nav_t *nav, const prcopt_t *opt, sol_t *sol,
-                      const double *azel, const int *vsat)
-   {
-       //这里不像定位时，初始值可能为上一历元的位置(从 sol 中读取初始值)，这里定速的初始值直接给定为 0
-       double x[4]={0},dx[4],Q[16],*v,*H;
-       double err=opt->err[4]; /* Doppler error (Hz) */
-       int i,j,nv;
-       
-       trace(3,"estvel  : n=%d\n",n);
-       
-       v=mat(n,1); H=mat(4,n);
-       
-       for (i=0;i<MAXITR;i++) {    //在最大迭代次数(10次）限制内
-           //调用 resdop，计算定速方程组左边的几何矩阵和右端的速度残余，返回定速时所使用的卫星数目
-           /* range rate residuals (m/s) */
-           if ((nv=resdop(obs,n,rs,dts,nav,sol->rr,x,azel,vsat,err,v,H))<4) {
-               break;
-           }
-           //调用最小二乘法 lsq 函数，解出{速度、频漂}的改正量 dx，累加到 x 中。
-           //频漂计算了，但并没有存
-           /* least square estimation */
-           if (lsq(H,v,4,nv,dx,Q)) break;        
-           for (j=0;j<4;j++) x[j]+=dx[j];
-           //检查当前计算出的改正量的绝对值是否小于 1E-6,
-           //是：则说明当前解已经很接近真实值了，将接收机三个方向上的速度存入到 sol->rr 中
-           //否：进行下一次循环
-           if (norm(dx,4)<1E-6) {
-               matcpy(sol->rr+3,x,3,1);
-               sol->qv[0]=(float)Q[0];  /* xx */
-               sol->qv[1]=(float)Q[5];  /* yy */
-               sol->qv[2]=(float)Q[10]; /* zz */
-               sol->qv[3]=(float)Q[1];  /* xy */
-               sol->qv[4]=(float)Q[6];  /* yz */
-               sol->qv[5]=(float)Q[2];  /* zx */
-               break;
-           }   
-       }
-       free(v); free(H);
-   }
-   ```
-
-### 10.1.7 resdop()：定数方程残差计算、设计矩阵构建
-计算定速方程组左边的几何矩阵和右端的速度残余，返回定速时所使用的卫星数目 
-
-1. **传入参数**：
-
-   ```c
-   obsd_t   *obs      I   观测量数据
-   int      n         I   观测量数据的数量
-   double   *rs       I   卫星位置和速度，长度为6*n，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-   double   *dts      I   卫星钟差，长度为2*n， {bias,drift} (s|s/s)
-   nav_t    *nav      I   导航数据
-   double   *rr       I   接收机位置和速度，长度为6，{x,y,z,vx,vy,vz}(ecef)(m,m/s)
-   double   *x        I   本次迭代开始之前的定速值，长度为4，{vx,vy,vz,drift}
-   double   *azel     IO  方位角和俯仰角 (rad)
-   int      *vsat     I   卫星在定速时是否有效
-   double   *v        O   定速方程的右端部分，速度残差
-   double   *H        O   定速方程中的几何矩阵
-   ```
-
-2. 执行流程：
-
-   * 调用`ecef2pos()`函数，将接收机位置由 ECEF-XYZ 转换为大地坐标系LLH，调用`xyz2enu()`函数，计算到ENU坐标转换矩阵`E`。 
-
-   * 遍历当前历元每一个观测值（卫星），即遍历所有卫星：
-     * 去除在定速时不可用的卫星。 
-     * 计算当前接收机位置下 ENU中的视向量`e`，然后用刚刚计算出的转换矩阵`E`转换得到 ECEF 中视向量的值。 
-     * 计算ECEF中卫星相对于接收机的速度，卫星速度`rs[j+3+i*6]`-传入的定速初值`x[j] `。
-     * 计算考虑了地球自转的用户和卫星之间的几何距离变化率`rate `。
-     * 计算`rate`的标准差、残差。
-     * 构建设计矩阵 `H`，将观测方程数 `nv` 加1
-
-     ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/1bef70de3ef1494bab4fb6af5fdc8602.png)
-
-
-   * 遍历完每一个观测值，返回定数方程数`nv`。
-
-   ```c
-   static int resdop(const obsd_t *obs, int n, const double *rs, const double *dts,
-                     const nav_t *nav, const double *rr, const double *x,
-                     const double *azel, const int *vsat, double err, double *v,
-                     double *H)
-   {
-       double freq,rate,pos[3],E[9],a[3],e[3],vs[3],cosel,sig;
-       int i,j,nv=0;
-       
-       trace(3,"resdop  : n=%d\n",n);
-       
-       //调用 ecef2pos() 函数，将接收机位置由 ECEF 转换为大地坐标系。
-       //调用 xyz2enu() 函数，计算到ENU坐标转换矩阵 E。
-       ecef2pos(rr,pos); xyz2enu(pos,E);  
-       
-       for (i=0;i<n&&i<MAXOBS;i++) {
-           
-           freq=sat2freq(obs[i].sat,obs[i].code[0],nav);
-           
-           //去除在定速时不可用的卫星。
-           if (obs[i].D[0]==0.0||freq==0.0||!vsat[i]||norm(rs+3+i*6,3)<=0.0) {
-               continue;
-           }
-           //计算当前接收机位置下 ENU中的视向量e，然后转换得到 ECEF 中视向量的值。
-           /* LOS (line-of-sight) vector in ECEF */    
-           cosel=cos(azel[1+i*2]);
-           a[0]=sin(azel[i*2])*cosel;
-           a[1]=cos(azel[i*2])*cosel;
-           a[2]=sin(azel[1+i*2]);              
-           matmul("TN",3,1,3,1.0,E,a,0.0,e);   
-           
-           //计算 ECEF 中卫星相对于接收机的速度，卫星速度rs[j+3+i*6]-传入的定速初值x[j]
-           /* satellite velocity relative to receiver in ECEF */
-           for (j=0;j<3;j++) {         
-               vs[j]=rs[j+3+i*6]-x[j]; 
-           }                           
-   
-           //计算考虑了地球自转的用户和卫星之间的几何距离变化率
-           /* range rate with earth rotation correction */
-           rate=dot(vs,e,3)+OMGE/CLIGHT*(rs[4+i*6]*rr[0]+rs[1+i*6]*x[0]-
-                     rs[3+i*6]*rr[1]-rs[  i*6]*x[1]);	//(F.6.29)
-   
-           /* Std of range rate error (m/s) */     
-           sig=(err<=0.0)?1.0:err*CLIGHT/freq;     
-           
-           /* range rate residual (m/s) */
-           v[nv]=(-obs[i].D[0]*CLIGHT/freq-(rate+x[3]-CLIGHT*dts[1+i*2]))/sig;
-           
-           /* design matrix */     //构建左端项的几何矩阵
-           for (j=0;j<4;j++) {
-               H[j+nv*4]=((j<3)?-e[j]:1.0)/sig;    //(F.6.28)
-           }
-           nv++;   //将观测方程数增 1
-       }
-       return nv;
-   }
-   ```
-
-## 10.2 电离层处理
+## 10.5 电离层处理
 
 > 模型公式见manual p151，我在代码的注释里标注了公式号
 
@@ -930,6 +1461,7 @@ E6.24 的第一项
    电离层延迟改正模型包括克罗布歇（Klobuchar）模型、格网（Global Ionosphere Maps，GIM）、模型和国际参考电离层（International Reference Ionosphere，IRI）模型等。
 
 ### 10.2.2 ionocorr()：根据选项调用L1电离层延迟I
+
 在 rescode() 中被调用，根据选项，调用 ionmodel()、sbsioncorr()、iontec()、ionmodel()计算L1电离层延迟I
 
 > 计算的是 L1 信号的电离层延时 I ，当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的比例关系，对上一步得到的电离层延时进行修正。
@@ -1436,7 +1968,7 @@ extern void readtec(const char *file, nav_t *nav, int opt)
    }
    ```
 
-## 10.3 对流层处理
+## 10.6 对流层处理
 
 ### 10.3.1 对流层延迟改正概述
 
@@ -1509,3 +2041,8 @@ extern double tropmodel(gtime_t time, const double *pos, const double *azel,
     return trph+trpw;       // Saastamoinen中对流层延迟为静力学延迟Th湿延迟Tw的和
 }
 ```
+
+
+
+
+
