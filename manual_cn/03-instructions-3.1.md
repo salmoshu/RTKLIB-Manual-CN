@@ -62,3 +62,6 @@ RTKLIB提供了一个入门的[Demo示例](https://www.rtklib.com/rtklib_tutoria
 为了方便运行图形用户界面应用程序，2.4.2版本中新增了一个应用程序启动器RTKLAUNCH。不过由于大部分人只会关注部分应用程序，所以该启动器实际使用并不多。
 
 要运行RTKLAUNCH，请执行`<install dir>\rtklib_<ver>\bin\rtklaunch.exe`。您可以在RTKLAUNCH窗口中点击应用程序图标，或通过任务栏图标弹出菜单来运行RTKLIB应用程序。RTKLAUNCH接受接受`-tray`选项，用于以任务栏图标的形式启动启动器。
+
+![](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250707-184507.jpg)
+<p style="text-align: center;">图3.1-1 RTKLAUNCH 主界面与应用程序图标</p> 

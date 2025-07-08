@@ -2,17 +2,26 @@
 sidebarDepth: 2
 ---
 
-# 1. 简介
+> 项目参考：[Navigation-Learning](https://github.com/LiZhengXiao99/Navigation-Learning)
+> - 重新组织了其文档结构，让文档格式更加标准化；
 
-本文档翻译自Tim Everett（rtkexplorer）维护的最新版本RTKLIB手册：[manual_demo5](https://rtkexplorer.com/pdfs/manual_demo5.pdf)，该文档并非完全直译，对于其中一些无效或冗余的内容，将直接重述或舍弃。
+<!-- 备忘： -->
+<!-- > 推荐阅读：[不迷途导航程序员：RTKLIB 源码阅读笔记](https://mp.weixin.qq.com/s/2D3V0qDh6fwt_tZ0225znw)
+> 推荐视频：[Lewen_NavSense-多模卫星导航定位与应用](https://space.bilibili.com/479790048/channel/collectiondetail?sid=2487703)
+> 推荐视频：[GNSS高精度算法代码学习-RTKLIB篇](https://www.bilibili.com/video/BV1a6saeAEDz)
+> 推荐视频：[冰菓的RTKLIB&GAMP 北斗卫星定位不妙屋](https://space.bilibili.com/199461274/channel/collectiondetail?sid=1088015) -->
+
+## RTKLIB：最知名的 GNSS 数据处理程序
 
 RTKLIB是一个用于全球导航卫星系统（GNSS）标准定位和精密定位的开源项目，由日本东京海洋大学的高须知二（Tomoji Takasu）开发。它由一个核心程序库和多个命令行程序与界面程序组成。RTKLIB具有以下特点：
 
-## 1.1 支持的星座
+![](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250707-184113.jpg)
+
+### 支持的星座
 
 RTKLIB支持GPS<sup>[1][2][3]</sup>、GLONASS<sup>[4]</sup>、Galileo<sup>[5]</sup>、QZSS<sup>[6]</sup>、北斗<sup>[7]</sup>和SBAS<sup>[8]</sup>等卫星导航系统。
 
-## 1.2 定位模式
+### 定位模式
 
 RTKLIB支持多种GNSS实时和后处理定位模式：
 
@@ -29,7 +38,7 @@ RTKLIB支持多种GNSS实时和后处理定位模式：
 |                      | PPP-Static - 静态精密单点定位              | 单站静态定位，使用精密轨道和钟差，高精度静止测量。                         |
 |                      | PPP-Fixed - 固定坐标精密定位               | 已知坐标，解算模糊度、对流层等参数，非定位用途。                     |
 
-## 1.3 支持的格式与标准
+### 支持的格式与标准
 
 RTKLIB支持多种GNSS标准格式和协议（详细信息参考附录D.1和D.2）：
    
@@ -37,7 +46,7 @@ RTKLIB支持多种GNSS标准格式和协议（详细信息参考附录D.1和D.2�
 - **RTCM：** RTCM ver.2.3 <sup>[16]</sup>, RTCM ver.3.1（修订1-5）<sup>[17]</sup>,<u>RTCM ver.3.2</u> <sup>[18]</sup>；
 - **其他标准：** BINEX <sup>[19]</sup>, NTRIP 1.0 <sup>[20]</sup>, <u>NMEA 0183</u> <sup>[21]</sup>, SP3-c <sup>[22]</sup>, ANTEX 1.4 <sup>[23]</sup>, IONEX 1.0 <sup>[24]</sup>， NGS PCV<sup>[25]</sup>和EMS 2.0<sup>[26]</sup>
 
-## 1.4 支持的私有格式
+### 支持的私有格式
 
 RTKLIB支持以下几种GNSS接收机的专有消息格式（详细信息参考附录D.2）：
 
@@ -53,7 +62,7 @@ RTKLIB支持以下几种GNSS接收机的专有消息格式（详细信息参考�
 
 注意：上述表格仅列出了原始官方RTKLIB支持的部分品牌和型号，具体支持情况会因版本差异而有所不同，例如最新的demo5代码已经开始支持和芯星通Unicore的专有格式。
 
-## 1.5 支持的通信方式
+### 支持的通信方式
    
 支持多种通信方式，用于接收机数据传输、差分定位、实时PPP以及数据记录和调试：
 - **串口：** 接收机通过串口直接连接电脑，传输观测数据和星历数据。
@@ -65,7 +74,7 @@ RTKLIB支持以下几种GNSS接收机的专有消息格式（详细信息参考�
   - 可将日志文件转换为RINEX格式，从而进行后处理操作。
 - **FTP/HTTP：** 支持自动下载数据。
 
-## 1.6 核心库函数
+### 核心库函数
 
 RTKLIB提供了许多库函数和API（应用程序接口）：
    
@@ -76,7 +85,7 @@ RTKLIB提供了许多库函数和API（应用程序接口）：
 - **数据传输：** 数据流服务器、数据下载
 - **程序调试：** 调试与跟踪
 
-## 1.7 应用程序
+### 应用程序
 
 RTKLIB包含以下GUI（图形用户界面）和CUI（命令行用户界面）程序：
 <table style="text-align: center;">
