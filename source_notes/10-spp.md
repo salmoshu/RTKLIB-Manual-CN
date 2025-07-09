@@ -22,7 +22,7 @@ double   *azel    IO  azimuth/elevation angle (rad) (NULL: no output)
 ssat_t   *ssat    IO  satellite status              (NULL: no output)
 char     *msg     O   error message for error exit
 /* return */
-int                   stat (1:ok,0:error)
+int                   status (1:ok,0:error)
 ```
 
 **2. 执行流程**
@@ -143,7 +143,7 @@ int      *vsat     IO  卫星在定位时是否有效
 double   *resp     IO  定位后伪距残差 (P-(r+c*dtr-c*dts+I+T))
 char     *msg      O   错误消息
 /* return */
-int                    stat (1:ok,0:error)
+int                    status (1:ok,0:error)
 ```
 
 **2. 执行流程**
@@ -271,7 +271,7 @@ double   *azel     IO  方位角和俯仰角 (rad)
 int      *vsat     IO  定位时有效卫星
 char     *msg      O   错误消息
 /* return */
-int                    stat (1:ok,0:error)
+int                    status (1:ok,0:error)
 ```
 
 **2. 执行流程**
@@ -353,7 +353,7 @@ int            *vsat    IO   表征卫星在定位时是否有效
 double         *resp    IO   观测卫星的伪距残差，(P-(r+c*dtr-c*dts+I+T)) (1*n)
 char           *msg     O    错误信息
 /* return */
-int                          stat (1:ok,0:error)
+int                          status (1:ok,0:error)
 ```
 
 **2. 执行流程**
@@ -465,7 +465,7 @@ const double *v     I  定位方程的右端部分，伪距残差
 int nv              I  观测值数
 int nx              O  待估计参数数
 /* return */
-int                    stat (1:ok,0:error)
+int                    status (1:ok,0:error)
 ```
 
 **2. 执行流程**
@@ -550,7 +550,7 @@ int    n,m       I   估计参数与观测量的维度 (n<=m)
 double *x        O   估计参数 (n x 1)
 double *Q        O   协方差阵 (n x n)
 /* return */
-int                  stat (1:ok,0>:error)
+int                  status (1:ok,0>:error)
 ```
 
 **2. 执行过程**
@@ -1369,25 +1369,24 @@ static double prange(const obsd_t *obs, const nav_t *nav, const prcopt_t *opt,
 ```
 :::
 
-### 10.3.5 sat2freq()：获取频率
-
-传入satellite number和obs code，返回载波频率 。
-
 ## 10.4 坐标与几何距离
 
 ### 10.4.1 geodist()：计算站心几何距离
 
-地球自转引起的误差是信号传输过程中 GNSS 卫星信号发射时刻和接收机接收到信号的时刻之间地球自转对 GNSS 观测值产生的影响。相当于地球自转使得卫星空间位置在信号播发、收到的过程中接收机在地固系坐标轴上相对于 $\mathrm{Z}$ 轴发生了一定角度的旋转，使得 GNSS 卫星的在信号发射时刻的位置发生了变化，也称为 Sagnac 效应。
+**1. 基本原理**
 
-![image-20231028162356346](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231028162356346.png)
+地球自转引起的误差源自于信号传输过程中：GNSS 卫星信号**发射时刻**和接收机**接收到信号的时刻**之间**地球自转对 GNSS 观测值产生的影响**。
+
+相当于地球自转使得卫星空间位置在信号播发、接收过程中接收机在地固系坐标轴上相对于 z 轴发生了一定角度的旋转，使得 GNSS 卫星的在信号发射时刻的位置发生了变化，该现象也称作 Sagnac 效应。
+
+![Geometric Range and Earth Rotation Correction](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250219-234443.jpg)
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图10-2 几何距离和地球自转校正</p>
 
 地球自转引起的距离改正公式如下：
 $$
 \begin{array}{c}{\left[\begin{array}{l}x^{s^{\prime}} \\ y^{s^{s^{\prime}}} \\ z^{s^{\prime}}\end{array}\right]=\left[\begin{array}{ccc}\cos \omega \tau & \sin \omega \tau & 0 \\ -\sin \omega \tau & \cos \omega \tau & 0 \\ 0 & 0 & 1\end{array}\right]\left[\begin{array}{l}x^{s} \\ y^{s} \\ z^{s}\end{array}\right]} \\ \delta_{\text {sagnac, } r, j}=\frac{\omega_{e}}{c}\left(x^{s} y_{r}-y^{s} x_{r}\right)\end{array}
 $$
-上式中 $\left(x^{s^\prime}, y^{s^{\prime}}, z^{s^{\prime}}\right)$ 为地球自旋转后卫星的坐标值, $\left(x^{s}, y^{s}, z^{s}\right)$ 为地球自旋转前卫星的坐标值, $\omega_{e}$ 代表地球自传角速度值, $\tau$ 为卫星发射信号时刻到接收机接收卫星时刻的历元数。
-
-改正地球自转后的近似几何距离近似几何距离如下：
+上式中 $\left(x^{s^\prime}, y^{s^{\prime}}, z^{s^{\prime}}\right)$ 为地球自旋转后卫星的坐标值, $\left(x^{s}, y^{s}, z^{s}\right)$ 为地球自旋转前卫星的坐标值, $\omega_{e}$ 代表地球自传角速度值, $\tau$ 为卫星发射信号时刻到接收机接收卫星时刻的历元数。改正地球自转后的近似几何距离近似几何距离如下：
 $$
 \begin{array}{l} \rho_{r}^{s} \approx\left\|\boldsymbol{r}_{r}\left(t_{r}\right)-\boldsymbol{r}^{s}\left(t^{s}\right)\right\|+\frac{\omega_{e}}{c}\left(x^{s} y_{r}-y^{s} x_{r}\right) \end{array}
 $$
@@ -1396,23 +1395,45 @@ $$
 \boldsymbol{e}_{r}^{s}=\frac{\boldsymbol{r}^{s}\left(t^{s}\right)-\boldsymbol{r}_{r}\left(t_{r}\right)}{\left\|\boldsymbol{r}^{s}\left(t^{s}\right)-\boldsymbol{r}_{r}\left(t_{r}\right)\right\|}
 $$
 
+**2. 参数列表**
+
+```c
+/* args */
+double *rs       I   satellite position (ecef at transmission) (m)
+double *rr       I   receiver position (ecef at reception) (m)
+double *e        O   line-of-sight unit vector (ecef)
+/* return */
+double               geometric distance (m) (0>:error/no satellite position)
+```
+
+**3. 执行流程**
+
+- 检查卫星到 WGS84 坐标系原点的距离是否大于基准椭球体的长半径。
+- `ps-pr`，计算由接收机指向卫星方向的观测矢量，之后在计算出相应的单位矢量。
+- 考虑到地球自转，即信号发射时刻卫星的位置与信号接收时刻卫星的位置在 WGS84 坐标系中并不一致，进行关于 Sagnac 效应的校正。
+
+::: details 点击查看代码
 ```c
 extern double geodist(const double *rs, const double *rr, double *e)
 {
     double r;
     int i;
     
-    if (norm(rs,3)<RE_WGS84) return -1.0;   // 检查卫星到 WGS84坐标系原点的距离是否大于基准椭球体的长半径。
-    for (i=0;i<3;i++) e[i]=rs[i]-rr[i];     // 求卫星和接收机坐标差e[]
-    r=norm(e,3);                            // 求未经萨格纳克效应改正的距离
-    for (i=0;i<3;i++) e[i]/=r;  // 接收机到卫星的单位向量e[]	(E.3.9)
-    return r+OMGE*(rs[0]*rr[1]-rs[1]*rr[0])/CLIGHT; 	//(E.3.8b)
+    if (norm(rs,3)<RE_WGS84) return -1.0; // 检查卫星到 WGS84坐标系原点的距离是否大于基准椭球体的长半径。
+    for (i=0;i<3;i++) e[i]=rs[i]-rr[i];   // 求卫星和接收机坐标差e[]
+    r=norm(e,3);                          // 求未经萨格纳克效应改正的距离
+    for (i=0;i<3;i++) e[i]/=r;            // 接收机到卫星的单位向量e[] (E.3.9)
+    return r+OMGE*(rs[0]*rr[1]-rs[1]*rr[0])/CLIGHT; // (E.3.8b)
 }
 ```
+:::
 
 ### 10.4.2 satazel()：计算方位角、高度角
 
-![image-20231028163827373](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231028163827373.png)
+**1. 基本原理**
+
+![ Local Coordinates and Azimuth and Elevation Angles](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250219-235235.jpg)
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图10-3 局部坐标系与方位角和仰角</p>
 
 方位角范围在 $[0,2 \pi]$，高度角范围在 $[-\frac{\pi}{2},\frac{\pi}{2}]$；以接收机为原点，建立站心坐标系 ENU，根据卫星 ENU 下方向矢量可以得到高度角、方位角，公式如下：
 $$
@@ -1420,6 +1441,26 @@ $$
 $$
 对应的代码如下，传入接收机 LLH 坐标 `pos`、接收机到卫星方向的观测矢量 `e`，计算之后返回弧度制的高度角，如果传了参三 `azel`，那么 `azel[0]` 是方位角、`azel[1]` 是高度角。
 
+**2. 参数列表**
+
+```c
+/* args */
+double *pos      I   geodetic position {lat,lon,h} (rad,)
+double *e        I   receiver-to-satellilte unit vevtor (ecef)
+double *azel     IO  azimuth/elevation {az,el} (rad) (NULL: no output)  (0.0<=azel[0]<2*pi,-pi/2<=azel[1]<=pi/2)
+/* return */
+double               elevation angle (rad)
+```
+
+**3. 执行流程**
+- 调用 `ecef2enu` 函数，将 `pos` 处的向量转换到以改点为原点的站心坐标系中。
+- 调用 `atan2` 函数计算出方位角，然后再算出仰角。
+
+**4. 注意事项**
+
+- 这里在计算方位角时，要使用 `atan2` 函数，而不能是 `atan` 函数，详细原因见附录A.5。
+
+::: details 点击查看代码
 ```c
 extern double satazel(const double *pos, const double *e, double *azel)
 {
@@ -1435,74 +1476,106 @@ extern double satazel(const double *pos, const double *e, double *azel)
     return el;
 }
 ```
+:::
 
 ## 10.5 电离层处理
 
-> 模型公式见manual p151，我在代码的注释里标注了公式号
+> 模型公式 [RTKLIB-Manual-CN E.5章节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.5.html)
 
-### 10.2.1 电离层延迟改正概述
+### 10.2.1 概述
 
-1. 卫星GNSS电磁波信号在传播过程中需要穿过地球大气层，会产生一些大气延迟误差，
-   包括电离层延迟误差和对流层延迟误差。
+1. **基本理解**：GNSS 卫星电磁波信号在传播过程中需要穿过地球大气层，会产生一些大气延迟误差，包括电离层延迟误差和对流层延迟误差。
 
-2. 电离层的范围从离地面约50公里开始一直伸展到约1000公里高度的地球高层大气空域。电离层的主要特性由电子密度、电子温度、碰撞频率、离子密度、离子温度和离子成分等空间分布的基本参数来表示。**电离层的研究对象主要是电子密度随高度的分布**。电子密度（或称电子浓度）是指单位体积的自由电子数，随高度的变化与各高度上大气成分、大气密度以及太阳辐射通量等因素有关。电离层内任一点上的电子密度，决定于上述自由电子的产生、消失和迁移三种效应。在不同区域，三者的相对作用和各自的具体作用方式也大有差异。电离层中存在相当多的自由电子和离子，能使无线电波改变传播速度，发生折射、反射和散射，产生极化面的旋转并受到不同程度的吸收。 
+2. **电离层的特点**：
+   - **分布**：电离层的范围从离地面约50公里开始一直伸展到约1000公里高度的地球高层大气空域。
+   - **特性**：电离层的主要特性由电子密度、电子温度、碰撞频率、离子密度、离子温度和离子成分等空间分布的基本参数来表示。
+   - **研究对象**：电离层研究的核心是**电子密度**随高度的分布。**电子密度**即单位体积内的自由电子数，其变化受**大气成分**、**大气密度**和**太阳辐射通量**等因素影响。**电子密度**由自由电子的**产生**、**消失**和**迁移**三种效应决定，不同区域这三种效应的作用方式和相对重要性存在差异。电离层中的自由电子和离子会使无线电波传播速度改变，引发**折射**、**反射**、**散射**、**极化面旋转**及不同程度的**吸收**。
 
-3. 电离层延迟与单位面积的横截面在信号传播路径上拦截的电子总量$N_e$成正比，且与载波频率$f$的平方成反比，弥散性的电离层降低了测距码的传播速度，而加快了载波相位的传播速度，如下所示。
+3. **电离层延迟与电子总量关系**：电离层延迟与单位面积的横截面在信号传播路径上拦截的电子总量 $N_e$ 成正比，且与载波频率 $f$ 的平方成反比，弥散性的电离层降低了测距码的传播速度，而加快了载波相位的传播速度，如下所示。
    $$
    I=I_ \rho=-I_\phi=40.28\frac{N_e}{f^2}
    $$
 
-4. 由于电离层的三维结构，其电子密度在水平和垂直方向上分布都不均匀，对于GNSS信号，其电离层延迟是整个传播路径上电子密度的积分，因此延迟量与信号的高度角、方位角相关。然而电子密度的具体分布对实际GNSS数据处理影响不大，GNSS用户更关心信号传播路径上的总电子含量，为了简化计算，在GNSS数据处理中引入了单层假设的概念，即将整个电离层压缩为一个高度为H的无限薄层，并假定电离层中所有的自由电子都集中分布在这个薄层上，在该薄层上，对VTEC进行计算和处理，示意图如下： 
+4. **电离层模型假设**：电离层的三维结构导致其电子密度在水平和垂直方向上分布不均匀。GNSS信号的电离层延迟是整个传播路径上电子密度的积分，与信号的高度角和方位角相关。然而，GNSS用户更关注信号传播路径上的总电子含量（TEC），而非电子密度的具体分布。为了简化计算，GNSS数据处理中引入了**单层假设**，即将电离层压缩为一个高度为**H**的无限薄层，假设所有自由电子集中分布在此薄层上，进而对垂直总电子含量（VTEC）进行计算和处理。示意图如下： 
 
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/8762f9a1d7734d928f33fd064291db6a.png)
+   <img src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-140753.jpg" style="width: 80%; margin: 0 auto;"/>
 
-5. 传统的双频测地型接收机通常使用双频观测值无电离层组合的方式消除一阶电离层延迟
-   误差，而对于单频数据，则通常采用电离层模型改正的方式来削弱电离层误差影响。常用的
-   电离层延迟改正模型包括克罗布歇（Klobuchar）模型、格网（Global Ionosphere Maps，GIM）、模型和国际参考电离层（International Reference Ionosphere，IRI）模型等。
+5. **常见方法或模型**：传统的双频测地型接收机通过**双频观测值无电离层组合**消除一阶电离层延迟误差，而单频数据则采用**电离层模型改正**来削弱误差影响。常用的电离层延迟改正模型包括**克罗布歇（Klobuchar）模型**、**格网（Global Ionosphere Maps，GIM）模型**和**国际参考电离层（International Reference Ionosphere，IRI）模型**。
 
-### 10.2.2 ionocorr()：根据选项调用L1电离层延迟I
+### 10.2.2 ionocorr()：计算电离层延时
 
-在 rescode() 中被调用，根据选项，调用 ionmodel()、sbsioncorr()、iontec()、ionmodel()计算L1电离层延迟I
-
-> 计算的是 L1 信号的电离层延时 I ，当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的比例关系，对上一步得到的电离层延时进行修正。
->
-> rescode()函数中的使用：
->
-> ```c
-> if (!ionocorr(time,nav,sat,pos,azel+i*2,opt->ionoopt,&dion,&vion)) continue;
-> if ((freq=sat2freq(sat,obs[i].code[0],nav))==0.0) continue;
-> dion*=SQR(FREQ1/freq);  //电离层改正量
-> vion*=SQR(FREQ1/freq);	//电离层改正误差
-> ```
+**1. 参数列表**
 
 ```c
-extern int tropcorr(gtime_t time, const nav_t *nav, const double *pos,
-                    const double *azel, int tropopt, double *trp, double *var)
+/* args */
+gtime_t  time      I   time
+nav_t    *nav      I   navigation data
+int      sat       I   satellite number
+double   *pos      I   receiver position {lat,lon,h} (rad|m)
+double   *azel     I   azimuth/elevation angle {az,el} (rad)
+int      ionoopt   I   ionospheric correction option (IONOOPT_???)
+double   *ion      O   ionospheric delay (L1) (m)
+double   *var      O   ionospheric delay (L1) variance (m^2)
+/* return */
+int                    status (1:ok,0:error)
+```
+
+**2. 执行流程**
+
+<img style="margin: 0 auto;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-135832.svg"/>
+
+- 根据 `opt` 的值，选用不同的电离层模型计算方法。当 `ionoopt==IONOOPT_BRDC` 时，调用 `ionmodel` ，计算 Klobuchar 模型时的电离层延时 (L1，m)；当 `ionoopt==IONOOPT_TEC` 时，调用 `iontec` ，计算 TEC网格模型时的电离层延时 (L1，m)。
+
+**3. 注意事项**
+
+- 计算的是 L1 信号的电离层延时 I ，当使用其它频率信号时，依据所用信号频组中第一个频率的波长与 L1 波长的比例关系，对上一步得到的电离层延时进行修正。
+- 当 `ionoopt==IONOOPT_IFLC` 时，此时通过此函数计算得到的延时和方差都为 0。其实，对于 IFLC 模型，其延时值在 `prange` 函数中计算伪距时已经包括在里面了，而方差是在 `varerr` 函数中计算的，并且会作为导航系统误差的一部分给出。
+
+::: details 点击查看代码
+```c
+// ionocorr (pntpos.c)
+extern int ionocorr(gtime_t time, const nav_t *nav, int sat, const double *pos,
+                    const double *azel, int ionoopt, double *ion, double *var)
 {
-    trace(4,"tropcorr: time=%s opt=%d pos=%.3f %.3f azel=%.3f %.3f\n",
-          time_str(time,3),tropopt,pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,
+    int err=0;
+
+    trace(4,"ionocorr: time=%s opt=%d sat=%2d pos=%.3f %.3f azel=%.3f %.3f\n",
+          time_str(time,3),ionoopt,sat,pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,
           azel[1]*R2D);
     
-    /* Saastamoinen model */
-    if (tropopt==TROPOPT_SAAS||tropopt==TROPOPT_EST||tropopt==TROPOPT_ESTG) {
-        *trp=tropmodel(time,pos,azel,REL_HUMI);
-        *var=SQR(ERR_SAAS/(sin(azel[1])+0.1));
+    /* SBAS ionosphere model */
+    if (ionoopt==IONOOPT_SBAS) {
+        if (sbsioncorr(time,nav,pos,azel,ion,var)) return 1;
+        err=1;
+    }
+    /* IONEX TEC model */
+    if (ionoopt==IONOOPT_TEC) {
+        if (iontec(time,nav,pos,azel,1,ion,var)) return 1;
+        err=1;
+    }
+    /* QZSS broadcast ionosphere model */
+    if (ionoopt==IONOOPT_QZS&&norm(nav->ion_qzs,8)>0.0) {
+        *ion=ionmodel(time,nav->ion_qzs,pos,azel);
+        *var=SQR(*ion*ERR_BRDCI);
         return 1;
     }
-    /* SBAS (MOPS) troposphere model */
-    if (tropopt==TROPOPT_SBAS) {
-        *trp=sbstropcorr(time,pos,azel,var);
+    /* GPS broadcast ionosphere model */
+    if (ionoopt==IONOOPT_BRDC||err==1) {
+        *ion=ionmodel(time,nav->ion_gps,pos,azel);
+        *var=SQR(*ion*ERR_BRDCI);
         return 1;
     }
-    /* no correction */
-    *trp=0.0;
-    *var=tropopt==TROPOPT_OFF?SQR(ERR_TROP):0.0;
+    *ion=0.0;
+    *var=ionoopt==IONOOPT_OFF?SQR(ERR_ION):0.0;
     return 1;
 }
 ```
+:::
 
 ### 10.2.3 ionmodel()：广播星历电离层改正
+
 SPP 中使用克罗布歇模型计算 L1 的电离层改正量，将晚间的电离层时延视为常数，取值为 5ns，把白天的时延看成是余弦函数中正的部分。于是天顶方向调制在 L1 载波上的测距码的电离层时延可表示为：
+
 $$
 T_{g}=5 \times 10^{-9}+A \cos \frac{2 \pi}{P}\left(t-14^{h}\right)
 $$
