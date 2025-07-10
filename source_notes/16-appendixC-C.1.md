@@ -1,13 +1,5 @@
 # 附录C: 配置参数解析
 
-> 本章节参考：
-> 
-> [RTKLIB-Manual-CN 3.5节-配置参数](/algorithm/RTKLIB-Manual-CN/03-instructions-3.5.html)。
-> 
-> [RTKLIB-Manual-CN 附录F-配置文件](/algorithm/RTKLIB-Manual-CN/10-appendixF.html)。
-
-我主要对一些重要的或我感兴趣的参数进行了分析，基于的代码版本是RTKLIB-demo5-b34K。配置参数与源码中的变量对应关系，可以查看sysopts数组（options.c）。
-
 ## C.1 Setting1
 
 ---
@@ -19,12 +11,12 @@
 
 **1. 参数解读**
 
-由于不会用到PPP，因此我在研究时会将关注点放在标准定位和基于RTK的精密定位上，以下是几种RTK模式的解读：
+由于不会用到 PPP，因此我在研究时会将关注点放在标准定位和基于 RTK 的精密定位上，以下是几种 RTK 模式的解读：
 
-- **static**：如果 rover 是静止的，使用static；
-- **kinematic**：如果它是移动的，使用kinematic（或static-start）；
-- **static-start**：static-start假设 rover 在第一次 Fix 完成之前是静止的，然后切换到动态模式，程序允许滤波器利用 rover 最开始是静止的先验信息；
-- **movingbase**：如果 base 和 rover 都在移动，那么可以使用movingbase模式（通常用来定姿）。movingbase模式与 dynamics 模式不兼容，请不要同时启用两者。如果 base 与 rover 保持固定距离，在 movingbase 模式下设置pos2-baselen和pos2-basesig；
+- **static**：如果 rover 是静止的，使用 static；
+- **kinematic**：如果它是移动的，使用 kinematic（或 static-start）；
+- **static-start**：static-start 假设 rover 在第一次 Fix 完成之前是静止的，然后切换到动态模式，程序允许滤波器利用 rover 最开始是静止的先验信息；
+- **movingbase**：如果 base 和 rover 都在移动，那么可以使用 movingbase 模式（通常用来定姿）。movingbase 模式与 dynamics 模式不兼容，请不要同时启用两者。如果 base 与 rover 保持固定距离，在 movingbase 模式下设置 `pos2-baselen` 和 `pos2-basesig`；
 - **fixed**：如果知道 rover 的确切位置，且只对分析残差感兴趣，可以使用fixed。
 
 **2. 源码解析**
@@ -36,7 +28,7 @@
 if (rtk->opt.mode==PMODE_STATIC||rtk->opt.mode==PMODE_STATIC_START) return;
 ```
 
-如果使用了static或static-start，那么在时间更新udpos的时候，不会进行状态预测操作，函数会在预测的代码前返回，这样将加速滤波器的收敛。
+如果使用了 static 或 static-start ，那么在时间更新 `udpos` 的时候，不会进行状态预测操作，函数会在预测的代码前返回，这样将加速滤波器的收敛。
 
 **b. static-start的状态切换**
 
@@ -49,7 +41,7 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
 }
 ```
 
-执行relpos时，在判断首次固定后，static-start模式会在内部切换为kinematic模式。
+执行 `relpos` 时，在判断首次固定后，static-start 模式会在内部切换为 kinematic 模式。
 
 **c. movingbase**
 
@@ -72,7 +64,7 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
       }
   ```
 
-  使用movingbase模式时，将不会得到精准的定位结果，每个历元基站的位置为其单点定位的位置。此时的定位结果的精度水平将主要取决于单点定位pntpos。这里的结果使用了简单的平滑技术。
+  使用 **movingbase** 模式时，将不会得到精准的定位结果，每个历元基站的位置为其单点定位的位置。此时的定位结果的精度水平将主要取决于单点定位 `pntpos` 。这里的结果使用了简单的平滑技术。
 
 * 时间同步
 
@@ -95,7 +87,7 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
   }
   ```
 
-  movingbase模式下，基站和流动站通常在一个载体上，RTKLIB在设计movingbase模式时，假设了基站和流动站的观测数据是实时或近实时传输的，因此对时间同步会有更严格的要求，最大的时间差小于1.05s（TTOL_MOVEB），此时pos2-maxage的配置不起作用。
+  **movingbase** 模式下，基站和流动站通常在一个载体上，RTKLIB 在设计 **movingbase** 模式时，假设了基站和流动站的观测数据是实时或近实时传输的，因此对时间同步会有更严格的要求，最大的时间差小于1.05s（`TTOL_MOVEB`），此时 `pos2-maxage` 的配置不起作用（准确来讲是换了一种方式作用）。
 
 * 基线约束
 
@@ -114,7 +106,7 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
   }
   ```
 
-  constbl函数只有在启用movingbase模式时才会生效。如果使用基线约束，那么会多一个观测方程（nv++），约束项通过残差v和H作用到滤波器中。基线长度 bb = sqrt(b[0]^2 + b[1]^2 + b[2]^2)，因此对状态变量 x[i] 的偏导为 b[i]/bb。
+  `constbl` 函数只有在启用 **movingbase** 模式时才会生效。如果使用基线约束，那么会多一个观测方程（`nv++`），约束项通过残差v和H作用到滤波器中。基线长度 `bb = sqrt(b[0]^2 + b[1]^2 + b[2]^2)`，因此对状态变量 `x[i]` 的偏导为 `b[i]/bb`。
 
 * 计算航向
 
@@ -127,13 +119,14 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
   }
   ```
 
-  虽然我预期的movingbase是用来定姿的，但是我发现输出结果中唯一和姿态相关的物理量只有NMEA RMC语句中的航向信息，而该航向信息来自于速度。
-  不过RTKLIB提供了E/N/U-baseline的输出格式，此时得到的便是基线向量，可以通过E和N再自行计算一个航向出来。
-  movingbase的更多思考可以查看附录[A.7 RTKLIB中moving-base模式和基线约束](/algorithm/RTKLIB-Source-Notes/14-appendixA.html#a-7-moving-base模式和基线约束)。
+  虽然我预期的 **movingbase** 是用来定姿的，但是我发现输出结果中唯一和姿态相关的物理量只有 NMEA RMC 语句中的航向信息，而该航向信息来自于速度。
+
+  不过 RTKLIB 提供了 E/N/U-baseline 的输出格式，此时得到的便是基线向量，可以通过 E 和 N 向速度分量再自行计算一个航向出来。
+  **movingbase** 的更多思考可以查看附录[A.7 RTKLIB中moving-base模式和基线约束](/algorithm/RTKLIB-Source-Notes/14-appendixA.html#a-7-moving-base模式和基线约束)。
 
 **4. kinematic**
 
-至于其余的逻辑均为kinematic。
+至于其余的逻辑均为 **kinematic** 。
 
 ---
 
@@ -141,7 +134,6 @@ if (rtk->opt.mode==PMODE_STATIC_START) {
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-145058.jpg"/>
 <p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图C.1-2 频段选择</p>
-
 
 **1. 参数解读**
 

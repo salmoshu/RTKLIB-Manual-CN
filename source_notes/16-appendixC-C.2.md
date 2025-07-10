@@ -1,14 +1,8 @@
 # 附录C: 配置参数解析
 
-> 本章节参考：
-> 
-> [RTKLIB-Manual-CN 3.5节-配置参数](/algorithm/RTKLIB-Manual-CN/03-instructions-3.5.html)。
-> 
-> [RTKLIB-Manual-CN 附录F-配置文件](/algorithm/RTKLIB-Manual-CN/10-appendixF.html)。
-
-我主要对一些重要的或我感兴趣的参数进行了分析，基于的代码版本是RTKLIB-demo5-b34K。配置参数与源码中的变量对应关系，可以查看sysopts数组（options.c）。
-
 ## C.2 Setting2
+
+---
 
 ### C.2.1 pos2-armode
 
@@ -93,6 +87,8 @@ if (rtk->opt.modear==ARMODE_FIXHOLD||rtk->opt.glomodear==GLO_ARMODE_FIXHOLD)
 
 注意：单独看ARMODE_ FIXHOLD的话会比较抽象，建议结合代码上下文一起看。
 
+---
+
 ### C.2.2 pos2-varholdamb (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-153637.jpg"/>
@@ -113,6 +109,8 @@ for (i=0;i<nv;i++) R[i+i*nv]=rtk->opt.varholdamb;
 
 参数 varholdamb 对应于EKF中测量噪声协方差矩阵 R 的对角线数值。需要注意的是，该R矩阵用于在浮点解测量更新完成后执行的一次新的测量更新。因此，该R矩阵仅适用于这一新的测量更新过程，与浮点解过程是独立的。新测量更新完成后，状态协方差矩阵P得到更新，从而对hold的模糊度状态施加约束。这些更新后的状态随后作为下一轮迭代的先验信息。
 
+---
+
 ### C.2.3 pos2-gloarmode (fix-and-hold, atuocal适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-153844.jpg"/>
@@ -130,6 +128,8 @@ for (i=0;i<nv;i++) R[i+i*nv]=rtk->opt.varholdamb;
 
 这一部分暂时不在笔者的兴趣范围内，延伸阅读参考附录[A.8：GLONASS模糊度固定的算法优化](/algorithm/RTKLIB-Source-Notes/14-appendixA.html#a-8-glonass模糊度固定的算法优化)。
 
+---
+
 ### C.2.4 pos2-gainholdamb (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-154139.jpg"/>
@@ -142,6 +142,8 @@ for (i=0;i<nv;i++) R[i+i*nv]=rtk->opt.varholdamb;
 **2. 源码解析**
 
 该部分可以参考C.2.2节。
+
+---
 
 ### C.2.5 pos2-arthres
 
@@ -175,6 +177,8 @@ if (nb>=0 && rtk->sol.prev_ratio2>=rtk->sol.thres && ((rtk->sol.ratio<rtk->sol.t
 
 pos2-arthres参数主要由rtk->opt.thresar[0]控制，demo5-b34k版本中模糊度固定的ratio阈值由卫星数目动态决定。
 
+---
+
 ### C.2.6 pos2-arthresmin/max (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-154644.jpg"/>
@@ -199,6 +203,8 @@ rtk->sol.thres = rtk->sol.thres*1/(nb1+1)+coeff[i];
 ```
 
 使用二次多项式拟合，根据卫星对数量 nb1 调整 AR 比率。每次迭代将当前值乘以 1/(nb1+1) 并加上下一个系数，生成最终的调整后比率 rtk->sol.thres。
+
+---
 
 ### C.2.7 pos2-arfilter (适用于demo5)
 
@@ -225,6 +231,8 @@ arfilter通过检测 AR 比率下降（当前解质量低于前一历元或阈�
 - 若有卫星被剔除，则重新运行 LAMBDA 解析。
 
 该逻辑主要依赖于 AR 比率的动态变化，旨在避免因新卫星引入的错误固定（false fix），并通过分阶段延迟减少对新卫星的过度剔除。此机制在滤波器收敛初期尤为重要，因为新卫星可能因信号不稳定导致解质量下降。
+
+---
 
 ### C.2.8 pos2-arthres1 (适用于demo5)
 
@@ -264,6 +272,8 @@ if (rtk->opt.mode<=PMODE_DGPS||rtk->opt.modear==ARMODE_OFF||
 
 这段代码的作用是作为 AR 过程的前置条件，根据当前的定位模式、AR 配置和位置估计质量（方差）决定是否执行 LAMBDA 模糊度解析。如果不满足条件，则不进行AR操作并重置相关状态。arthres1的作用主要是希望位置方差收敛到一定程度以后再进行AR操作，这样避免了在滤波器中的偏差状态尚未收敛之前出现的假固定。
 
+---
+
 ### C.2.9 pos2-arthres2 (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-161050.jpg"/>
@@ -277,6 +287,8 @@ if (rtk->opt.mode<=PMODE_DGPS||rtk->opt.modear==ARMODE_OFF||
 
 这一部分暂时不在笔者的兴趣范围内，详情请参阅资料[13]。
 
+---
+
 ### C.2.10 pos2-arthres3 (适用于demo5)
 
 **1. 参数解读**
@@ -287,6 +299,7 @@ GLONASS硬件偏差状态的初始方差。仅当pos2-gloarmode设置为“autoc
 
 这一部分暂时不在笔者的兴趣范围内，详情请参阅资料[13]。
 
+---
 
 ### C.2.11 pos2-arthres4 (适用于demo5)
 
@@ -297,6 +310,8 @@ GLONASS硬件偏差状态的卡尔曼滤波器过程噪声。较小的值会使p
 **2. 源码解析**
 
 这一部分暂时不在笔者的兴趣范围内，详情请参阅资料[13]。
+
+---
 
 ### C.2.12 pos2-arlockcnt
 
@@ -356,6 +371,8 @@ if (rtk->ssat[sat[i]-1].lock[f] == 0) {
 
 minlock 在此处的角色是延迟新卫星的加入，确保其信号稳定后才用于模糊度解析。具体通过将锁定计数设为负值（-minlock - dly），配合分阶段延迟和重新运行 AR，减少了新卫星引入的不确定性。
 
+---
+
 ### C.2.13 pos2-minfixsats (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-161630.jpg"/>
@@ -377,6 +394,8 @@ if ((nb=ddidx(rtk,ix,gps,glo,sbs))<(rtk->opt.minfixsats-1)) {  /* nb is sat pair
 ```
 
 minfixsats 的作用是作为模糊度固定过程的最小卫星对数阈值，确保 AR 过程有足够的数据基础。如果有效双差对数 nb 小于 minfixsats - 1，则中止 LAMBDA 固定，防止因卫星数量不足导致的错误解。
+
+---
 
 ### C.2.14 pos2-minholdsats (适用于demo5)
 
@@ -401,6 +420,8 @@ if (rtk->opt.modear==ARMODE_FIXHOLD&&nv<rtk->opt.minholdsats) {
 
 minholdsats 的作用是作为“Fix-and-Hold”模式下模糊度进入hold状态的最小卫星对数阈值，确保有足够的数据支持保持过程。如果双差对数 nv 小于 minholdsats，则中止模糊度hold，防止因卫星数量不足导致的解不稳定或错误的hold。注意这里的minholdsats没有像前面的minfixsats一样减1。
 
+---
+
 ### C.2.15 pos2-mindropsats (适用于demo5)
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-161949.jpg"/>
@@ -421,6 +442,8 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 这样做的效果是在未来历元中，逐步剔除卫星并尝试模糊度的固定，带有一定的随机性，不过在工程上它是有效的。
 
+---
+
 ### C.2.16 pos2-arelmask
 
 <img style="width: 80%; margin: 20px auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250709-162437.jpg"/>
@@ -430,6 +453,7 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 功能上与默认值0没有区别，因为小于“elmask”的高度角不会用于模糊度解算，但demo5作者将其更改以避免混淆。
 
+---
 
 ### C.2.17 pos2-arminfix
 
@@ -442,9 +466,40 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 **2. 源码解析**
 
-```c
+**a. 代码1**
 
+```c
+/* udrcvbias(rtkpos.c): temporal update of receiver h/w biases */
+/* hold to fixed solution */
+else if (rtk->nfix>=rtk->opt.minfix) {
+    initx(rtk,rtk->xa[j],rtk->Pa[j+j*rtk->na],j);
+}
 ```
+
+`udrcvbias` 函数是 RTKLIB 中 `udstate` 函数的一部分，用于 时间更新（temporal update）接收机的硬件偏差（receiver hardware bias）状态，具体针对 GLONASS 系统（当 `rtk->opt.navsys & SYS_GLO 且 rtk->opt.glomodear == GLO_ARMODE_AUTOCAL` 时）。
+
+该函数在 RTK 定位中管理 GLONASS 接收机的频率通道偏差（Inter-Frequency Bias, IFB），以确保相位观测的正确处理和模糊度解算的精度。
+
+而上述的代码片段的作用是：当模糊度固定成功时，将 GLONASS 接收机 IFB 状态更新为固定解的值。
+
+**b. 代码2**
+
+```c
+/* hold integer ambiguity if meet minfix count */
+if (++rtk->nfix>=rtk->opt.minfix) {
+    if (rtk->opt.modear==ARMODE_FIXHOLD||rtk->opt.glomodear==GLO_ARMODE_FIXHOLD)
+        holdamb(rtk,xa);
+    /* switch to kinematic after qualify for hold if in static-start mode */
+    if (rtk->opt.mode==PMODE_STATIC_START) {
+        rtk->opt.mode=PMODE_KINEMA;
+        trace(3,"Fix and hold complete: switch to kinematic mode\n");
+    }
+}
+```
+
+此处的的作用是：在连续固定模糊度的历元数达到最小阈值（`minfix`）后，执行固定解的保持操作（hold ambiguity）并可能切换定位模式（主要针对 STATIC-START 模式）。其中，`rtk->opt.minfix` 是配置文件中设定的最小固定历元数阈值，用于确保固定解的稳定性。
+
+---
 
 ### C.2.18 pos2-elmaskhold
 
@@ -453,15 +508,9 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 **1. 参数解读**
 
-```c
+功能上与默认值0没有区别，因为小于“elmask”的高度角不会用于保持模糊度解算结果，但demo5作者将其更改以避免混淆。
 
-```
-
-**2. 源码解析**
-
-```c
-
-```
+---
 
 ### C.2.19 pos2-aroutcnt
 
@@ -470,15 +519,23 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 **1. 参数解读**
 
-```c
-
-```
+导致模糊度重置的连续缺失样本数量。该参数与流动站的采样率有关，因此如果采样率发生变化，则需要调整此值。
 
 **2. 源码解析**
 
 ```c
-
+/* udbias (rtkpos.c): temporal update of phase biases */
+/* expire obs outage counter */
+reset=++rtk->ssat[i-1].outc[k]>(uint32_t)rtk->opt.maxout;
 ```
+
+在分析 `pos2-arlockcnt` 参数的时候有提及到 `reset` 。
+
+`reset` 的作用是判断是否需要重置单差相位偏移（phase-bias）状态量，通过检查卫星载波相位观测的中断次数（outc）是否超过配置文件中设定的最大中断次数阈值（`maxout`）。
+
+长时间中断可能由信号丢失、周跳、接收机锁定失败等引起。
+
+---
 
 ### C.2.20 pos2-maxage
 
@@ -487,26 +544,81 @@ if (rtk->sol.prev_ratio2<rtk->sol.thres&&rtk->nb_ar>=rtk->opt.mindropsats) {…}
 
 **1. 参数解读**
 
-```c
-
-```
+该指标可以理解为来自基站差分数据的时效性，定义为流动站与基站之间的最大延迟时间（s）。延迟通常是由于差分数据传输链路异常所导致的数据丢失。demo5版本代码可以将其从默认值提高，因为在首次 fix-and-hold 后，即使这个值变得较大，仍可以获得较好的结果。
 
 **2. 源码解析**
 
-```c
+**a. 代码1**
 
+```c
+/* intpres (rtkpos.c): time-interpolation of residuals (for post-processing solutions) */
+if (fabs(ttb)>opt->maxtdiff*2.0||ttb==tt) return tt;
 ```
+
+`intpres` 主要用于后处理解算（post-processing），通过 **时间插值** 对基站观测的残差（y）进行调整，使其与流动站观测的时间（time）对齐。
+
+该代码片段的作用是 **判断是否进行时间插值操作**，主要基于两个条件：(1) 上一组基站观测（`obsb`）与流动站观测（`time`）的时间差（`ttb`）过大，或 (2) 上一组与当前基站观测的时间差相同（以避免冗余计算）。`opt->maxtdiff` 在此起到 **时间差阈值** 的作用，控制时间插值的有效性。
+
+**b. 代码2**
+
+```c
+/* relpos(rtkpos.c): relative positioning */
+if (opt->mode!=PMODE_MOVEB) {
+    /* check if exceeded max age of differential */
+    rtk->sol.age=dt;
+    if (fabs(rtk->sol.age)>opt->maxtdiff) {
+        errmsg(rtk,"age of differential error (age=%.1f)\n",rtk->sol.age);
+        free(rs); free(dts); free(var); free(y); free(e); free(azel); free(freq);
+        return 1;
+    }
+}
+```
+
+若时间差（`dt`）超过 `maxtdiff`，说明基站数据太旧，可能不可靠，触发错误，释放内存并终止相对定位（退化为单点定位）。
+
+至于 `PMODE_MOVEB` 模式（即 **movingbase**）为什么会跳过，并不是因为 **movingbase** 不需要时间同步，而是由于：
+
+**movingbase** 模式下，基站和流动站通常在一个载体上，RTKLIB 在设计 **movingbase** 模式时，假设了基站和流动站的观测数据是实时或近实时传输的，因此对时间同步会有更严格的要求，最大的时间差小于1.05s（`TTOL_MOVEB`），此时 `pos2-maxage` 的配置不起作用（准确来讲是换了一种方式作用）。
+
+**c. 代码3**
+
+```c
+/* rtkpos(rtkpos.c): precise positioning */
+if (fabs(rtk->sol.age) > MIN(TTOL_MOVEB, opt->maxtdiff)) {
+    errmsg(rtk, "time sync error for moving-base (age=%.1f)\n", rtk->sol.age);
+    return 0;
+}
+```
+
+这段代码主要作用于 **movingbase** 模式。在代码2中已有提及，这里的作用是检查基站与流动站观测的时间差（差分龄期，`rtk->sol.age`）是否超过允许的最大阈值，以确保时间同步的有效性。
+
+`opt->maxtdiff` 在此作为时间阈值的参考值，与 `TTOL_MOVEB`（1.05s）比较后取较小值。而通常 `TTOL_MOVEB`（1.05s）要远小于 `opt->maxtdiff`。
+
+---
 
 ### C.2.21 pos2-rejionno
 
 **1. 参数解读**
 
-```c
+`pos2-rejionno` 指的 **EKF 新息** 的拒绝阈值，这里新息指的是 **验前残差**，偶尔大家也会称其为 **OMC（Observation Minus Computed）** 以便于记忆。
 
-```
+如果新息大于该值（m），则拒绝该观测值。在 demo5 b33 代码之前，该值未经调整直接应用于伪距和载波相位。在较新版本中，该值仍直接应用于相位观测值，但伪距观测值会乘以 `eratio`。这使得可以根据相位测量设置合适的值。
+
+demo5 作者通常将其设置为1.0，这有助于捕获并避免未标记的周跳，但有时需要将其设置得更高。设置得过低可能导致滤波器在数据质量较差时发散，因此 demo5 作者将默认值设置为 2.0，不过常用值则是 1.0。
 
 **2. 源码解析**
 
 ```c
-
+/* ddres(rtkpos.c): double-differenced residuals and partial derivatives */
+/* if residual too large, flag as outlier */
+// 对载波相位/伪距双差进行检查，如果过大超过阈值，则认为无效，阈值opt→maxinno为30。
+if (fabs(v[nv])>opt->maxinno[code]*threshadj) {
+    rtk->ssat[sat[j]-1].vsat[frq]=0;
+    rtk->ssat[sat[j]-1].rejc[frq]++;
+    errmsg(rtk,"outlier rejected (sat=%3d-%3d %s%d v=%.3f)\n",
+            sat[i],sat[j],code?"P":"L",frq+1,v[nv]);
+    continue;
+}
 ```
+
+这段代码的作用是检查双差残差（`v[nv]`）是否过大，若超过阈值（`opt->maxinno[code] * threshadj`），则将其标记为异常值（outlier），剔除该观测数据，避免其影响卡尔曼滤波的量测更新。`opt->maxinno` 作为残差阈值，起关键的异常值检测作用。

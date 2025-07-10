@@ -197,7 +197,7 @@ CDDIS.GSFC.NASA.gov/gps/products/%W/igu%W%D_%hb.sp3.Z
 
 在主窗口右侧的状态显示区域中，会显示观测信噪比（信噪比，C/N0）状态或天空图（skyplot）中的可见卫星。通过点击状态显示区域右上角的 <span style="border: 1px solid black; padding: 3px;">▼</span> 按钮，您可以切换内容以显示以下信息：流动站与基准站信噪比、流动站信噪比、流动站天空图、基准站天空图、基线图，以及宽模式流动站与基准站信噪比、宽模式（Wide-mode）流动站信噪比等，这些内容会交替显示。
 
-通过按下右上角附近的第二个 <span style="border: 1px solid black; padding: 3px;">▼</span> 按钮，可以切换图表中显示的频率。在SNR图或Skyplots中，除灰色外的未使用颜色表示信号SNR为：><span style="color: green;">45...</span> <span style="color: orange;">40...</span> <span style="color: ff00ff;">35...</span> <span style="color: ff00ff;">25...</span> < <span style="color: grey;">25</span>（dBHz）。信噪比图中卫星ID的颜色也表示卫星系统为：<span style="color: pink;">GPS（G）</span>、<span style="color: #cccc00;">GLONASS（R）</span>、<span style="color: #993366;">Galileo（E）</span>、<span style="color: #0000cc;">QZSS（J）</span>、<span style="color: #993300;">北斗（C）</span>和<span style="color: grey;">SBAS（S）</span>。
+通过按下右上角附近的第二个 <span style="border: 1px solid black; padding: 3px;">▼</span> 按钮，可以切换图表中显示的频率。在SNR图或Skyplots中，除灰色外的未使用颜色表示信号SNR为：><span style="color: green;">45...</span> <span style="color: orange;">40...</span> <span style="color: ff00ff;">35...</span> <span style="color: ff00ff;">25...</span> < <span style="color: grey;">25</span>（dBHz）。信噪比图中卫星ID的颜色也表示卫星系统为：<span style="color: green;">GPS（G）</span>、<span style="color: #cccc00;">GLONASS（R）</span>、<span style="color: #993366;">Galileo（E）</span>、<span style="color: #0000cc;">QZSS（J）</span>、<span style="color: #993300;">北斗（C）</span>和<span style="color: grey;">SBAS（S）</span>。
 
 ![Satellite and Signal Status Display of RTKNAVI](https://i.ibb.co/cyYbdVt/image.png)
 <p style="text-align: center;">图3.2-18 RTKNAVI卫星和频点信号状态显示</p> 

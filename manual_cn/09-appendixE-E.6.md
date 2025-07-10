@@ -132,7 +132,7 @@ $\begin{equation}
 
 迭代最小二乘法通常被称为高斯-牛顿法。请注意，对于具有较大非线性的病态（ill-conditioned）测量方程，简单的高斯-牛顿方法并不总是能够收敛。在这种情况下，我们应该采用另一种策略来处理这种非线性最小二乘问题。对于非线性最小二乘法，最流行的方法是非线性最小二乘的LM（Levenberg-Marquardt）方法。
 
-### E.6.3. 接收机位置和钟差估计
+### E.6.3 接收机位置和钟差估计
 
 如果定位模式 (Positioning Mode) 设置为 “Single” ，将会通过以下单点定位过程，通过逐历元的方式获得最终解。对于一个历元时间，未知参数向量 $\mathbf{x}$ 定义为：
 
@@ -185,27 +185,26 @@ $\begin{equation}
 \mathbf{W} = diag(\sigma_1^{-2}, \sigma_2^{-2}, \ldots, \sigma_m^{-2}) \tag{E.6.23}
 \end{equation}$
 
-$\begin{equation}
-\sigma^2 = {F^s}^2 R_r^2 \left(a_\sigma^2 + b_\sigma^2 / \sin El_r^s \right) + \sigma_{eph}^2 + \sigma_{ion}^2 + \sigma_{trop}^2 + \sigma_{bias}^2 \tag{E.6.24}
-\end{equation}$
+$\begin{align}
+\sigma^2 &= {(F^s)}^2 R_r^2 \left(e_{phase}^2 + e_{el}^2 / \sin^2(El_r^s) + \sigma_{snr}^2 \right) \\
+&\quad + \sigma_{eph}^2 + \sigma_{ion}^2 + \sigma_{trop}^2 + \sigma_{bias}^2 \tag{E.6.24}
+\end{align}$
 
 其中：
 
-$F^s$：卫星系统误差因子<br>
-（1: GPS, Galileo, QZSS和Beidou, 1.5: GLONASS, 3.0: SBAS）<br>
-$R_r$：码/载波相位误差比率，伪距定位和载波相位定位使用的是同样的加权公式，这里以载波相位为基础，然后通过系数转换到了伪距上<br>
-$a_\sigma, b_\sigma$：载波相位误差因子 $a$ 和 $b$（m）<br>
-$\sigma_{eph}$：星历和钟差标准差（m）<br>
-$\sigma_{ion}$：电离层校正模型误差标准差（m）<br>
-$\sigma_{trop}$：对流层校正模型误差标准差（m）<br>
-$\sigma_{bias}$：码偏差误差标准差（m）
+- $F^s$：卫星系统误差因子 fact
+- $R_r$：伪距/载波相位误差比率，伪距和载波相位观测使用的是相同的加权公式，这里以载波相位为主，然后通过 $R_r$ 系数转换至伪距
+- $e_{phase}, e_{el}$：高度角误模型误差因子（m）
+- $\sigma_{snr}$：SNR 误差模型（dB-Hz）
+- $\sigma_{eph}$：星历和钟差标准差（m）
+- $\sigma_{ion}$：电离层校正模型误差标准差（m）
+- $\sigma_{trop}$：对流层校正模型误差标准差（m）
+- $\sigma_{bias}$：码偏差误差标准差（m）
 
-::: info 手册与代码中权计算的差异
-RTKLIB代码中是这样的：<br>
-```c
-// var = fact^2*R^2*(a^2 + (b^2/sin(el) + c^2*(10^(0.1*(snr_max-snr_rover)))) + (d*rcv_std)^2)
-```
-注意，这里的$R$和$F^s$都需要带上平方，手册中并没有很好的说明这一点，另外代码中还包含SNR的部分。
+::: info 注意事项
+- $R_r$ 和 $F^s$ 需要带上平方（手册中没有很好地说明这一点）；
+- $\sin^2(El_r^s)$ 需要带上平方（原本手册与代码描述有误）；
+- 原本手册中没有给出 $\sigma_{snr}^2$，这部分可以参考 [RTKLIB-Source-Notes C.3节](/algorithm/RTKLIB-Source-Notes/16-appendixC-C.3.html)。
 ::: 
 
 对于星历和钟差的标准差，RTKLIB中使用了URA（用户测距精度）或类似的指标。通过几次迭代，通常情况下解会收敛，并获得估计的接收机位置 $\hat{\mathbf{r}}_r$ 和接收机钟差 $\hat{d}t_r$ 。

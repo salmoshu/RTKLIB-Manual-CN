@@ -671,6 +671,9 @@ Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree_SE
       <td>默认值：1E-4</td>
     </tr>
     <tr>
+      <td colspan="4"><strong>Other Term</strong></td>
+    </tr>
+    <tr>
       <td>Satellite Clock Stability</td>
       <td>设置卫星钟的稳定性（单位：s/s）。该值用于插值基准站观测值。</td>
       <td>stats-clkstab</td>
