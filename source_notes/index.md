@@ -3,7 +3,9 @@ sidebarDepth: 2
 ---
 
 > 项目参考：[Navigation-Learning](https://github.com/LiZhengXiao99/Navigation-Learning)
+> - 直接拷贝了其中有关 RTKLIB 部分的描述；
 > - 重新组织了其文档结构，让文档格式更加标准化；
+> - 该项目内容较全，但其中部分内容还需要重述或补充说明。
 
 <!-- 备忘： -->
 <!-- > 推荐阅读：[不迷途导航程序员：RTKLIB 源码阅读笔记](https://mp.weixin.qq.com/s/2D3V0qDh6fwt_tZ0225znw)

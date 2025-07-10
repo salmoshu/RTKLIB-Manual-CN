@@ -27,3 +27,9 @@
 [13] [GLONASS Ambiguity Resolution with RTKLIB Revisited](https://rtklibexplorer.wordpress.com/2018/06/14/glonass-ambiguity-resolution-with-rtklib-revisited/)
 
 [14] [C语言中的 atan 和 atan2](https://www.cnblogs.com/taqikema/p/8663223.html)
+
+[15] 王虎. GPS精密单点定位中电离层延迟改正模型的研究与分析[D]. 中南大学, 2008.
+
+[16] FAA. ICD-GPS-200C: Global Positioning System Interface Control Document [EB/OL]. (2000-04-12) [2025-07-10]. https://www.gps.gov/technical/icwg/ICD-GPS-200C.pdf. (P148)
+
+[17] S.Schear, W.Gurtner and J.Feltens, IONEX: The IONosphere Map EXchange Format Version 1, February 25, 1998

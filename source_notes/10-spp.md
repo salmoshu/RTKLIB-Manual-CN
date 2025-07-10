@@ -621,7 +621,7 @@ int                  卫星系统 (SYS_GPS,SYS_GLO,...)
 
 **3. 注意事项**
 
-- 这里的卫星号是从 1开始排序的，这也是很多函数中与之有关的数组在调用时形式写为 A[B.sat-1]
+- 这里的卫星号是从 1开始排序的，这也是很多函数中与之有关的数组在调用时形式写为 `A[B.sat-1]`。
 
 ::: details 点击查看代码
 ```c
@@ -1478,11 +1478,13 @@ extern double satazel(const double *pos, const double *e, double *azel)
 ```
 :::
 
+<!-- 
+
 ## 10.5 电离层处理
 
 > 模型公式 [RTKLIB-Manual-CN E.5章节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.5.html)
 
-### 10.2.1 概述
+### 10.5.1 概述
 
 1. **基本理解**：GNSS 卫星电磁波信号在传播过程中需要穿过地球大气层，会产生一些大气延迟误差，包括电离层延迟误差和对流层延迟误差。
 
@@ -1502,7 +1504,7 @@ extern double satazel(const double *pos, const double *e, double *azel)
 
 5. **常见方法或模型**：传统的双频测地型接收机通过**双频观测值无电离层组合**消除一阶电离层延迟误差，而单频数据则采用**电离层模型改正**来削弱误差影响。常用的电离层延迟改正模型包括**克罗布歇（Klobuchar）模型**、**格网（Global Ionosphere Maps，GIM）模型**和**国际参考电离层（International Reference Ionosphere，IRI）模型**。
 
-### 10.2.2 ionocorr()：计算电离层延时
+### 10.5.2 ionocorr()：计算电离层延时
 
 **1. 参数列表**
 
@@ -1572,7 +1574,9 @@ extern int ionocorr(gtime_t time, const nav_t *nav, int sat, const double *pos,
 ```
 :::
 
-### 10.2.3 ionmodel()：广播星历电离层改正
+### 10.5.3 ionmodel()：广播星历电离层改正
+
+**1. 模型原理**
 
 SPP 中使用克罗布歇模型计算 L1 的电离层改正量，将晚间的电离层时延视为常数，取值为 5ns，把白天的时延看成是余弦函数中正的部分。于是天顶方向调制在 L1 载波上的测距码的电离层时延可表示为：
 
@@ -1640,7 +1644,29 @@ $$
 I=\frac{\Phi_{2}-\Phi_{1}}{1-\left(f_{1} / f_{2}\right)^{2}}
 $$
 
+**2. 参数列表**
 
+```c
+/* args */
+gtime_t t        I   time (gpst)
+double *ion      I   iono model parameters {a0,a1,a2,a3,b0,b1,b2,b3}
+double *pos      I   receiver position {lat,lon,h} (rad,m)
+double *azel     I   azimuth/elevation angle {az,el} (rad)
+/* return */
+double               ionospheric delay (L1) (m)
+```
+
+**3. 注意事项**
+
+- 主要都是数学计算，其过程可以在 ICD-GPS-200C P148 [15]中找到；
+- 这里计算的电离层延时是相对于 GPS-L1 信号而言的，其它频率信号需要进行一次转换。
+- 计算过程中很多角度的单位是半圆，即 $\pi$ 弧度。在阅读代码时，记住这一点非常重要！比如，虽然上述过程与 ICD-GPS-200C P148 中一致，但可能与大部分资料上的过程还是会有所区别。尤其是以下公式：
+  - $ψ = \frac{0.0137}{E+0.01} - 0.022$ （参考文献[16]）
+  - $EA = \frac{445°}{el+20°} - 4^\circ$ （参考文献[15]）
+  
+  但是将下面公式的角度转化成半圆，即左右两边都除以 180，就可以得到上面的公式了！
+
+::: details 点击查看代码
 ```c
 extern double ionmodel(gtime_t t, const double *ion, const double *pos,
                        const double *azel)
@@ -1685,64 +1711,48 @@ extern double ionmodel(gtime_t t, const double *ion, const double *pos,
     return CLIGHT*f*(fabs(x)<1.57?5E-9+amp*(1.0+x*x*(-0.5+x*x/24.0)):5E-9);     //(E.5.13)
 }
 ```
-
-### 10.2.4 电离层IONEX文件读取
-
-![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/894f3255c10846b994d589fcc1746100.png)
-
-#### 1、IONEX文件概述
-
-##### 1.文件结构
-
-IONEX 文件分四大部分：**文件头**结束于`END OF HEADER`。**多组总电子含量**，每组以`START OF TEC MAP` ，结束于`END OF TEC MAP` 。**多组电子含量均方根误差** ，与总电子含量对应，开始于`START OF RMS MAP`，结束于`END OF RMS MAP`，**DCB数据块**开始于`START OF AUS DATA`，结束于`END OF AUS DATA`，也称**辅助数据块**（Auxiliary Data Blocks）。
-
-##### 2.文件头
-
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/f073bae9c4fe415b8a8e9e1f73ff0176.png)
+:::
 
 
-##### 3.总电子含量：有多组
 
-  ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/7aa72049617941d193862098067e9570.png)
+### 10.5.4 readtec()：TEC读取入口函数
 
+<img style="margin: 10px auto; width: 70%;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250710-235356.jpg"/>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图10.5-3 readtec 函数调用关系</p>
 
-##### 4.电子含量均方根误差：有多组，与总电子含量对应
+该部分参考文献[17]。
 
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/4d56b1507a8148d2b6fce4403f8254aa.png)
-
-
-##### 5. DCB数据块
-![在这里插入图片描述](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/fe0cf531ec344430b92dc39bc5b91696.png)
-
-
-#### 2、tec_t结构体：存tec格网数据
+**1. 参数列表**
 
 ```c
-typedef struct {        /* TEC grid type */
-    gtime_t time;       /* epoch time (GPST) */
-    int ndata[3];       /* TEC grid data size {nlat,nlon,nhgt} */
-    double rb;          /* earth radius (km) */
-    double lats[3];     /* latitude start/interval (deg) */
-    double lons[3];     /* longitude start/interval (deg) */
-    double hgts[3];     /* heights start/interval (km) */
-    double *data;       /* TEC grid data (tecu) */
-    float *rms;         /* RMS values (tecu) */
-} tec_t;
+/* args */
+char   *file       I   ionex tec grid file
+                       (wind-card * is expanded)
+nav_t  *nav        IO  navigation data
+                       nav->nt, nav->ntmax and nav->tec are modified
+int    opt         I   read option (1: no clear of tec data,0:clear)
+/* return */
+none
 ```
 
-* 其存储在`nav_t`结构体`tec`中 ，`nt`表示tec数量
+**2. 调用函数**
 
-#### 3、readtec()：TEC读取入口函数
+* **readionexh**()：读取文件头，循环读取每一行，根据注释读取前面内容，如果遇到`START OF AUX DATA` ，调用readionexdcb()读取DCB参数。
+* **readionexdcb**()：循环读取DCB参数和对应的均方根误差，直到`END OF AUS DATA`
+* **readionexb**()：循环读取TEC格网数据和均方根误差，`type`为1是TEC格网，`type`为2是均分根误差，调用`addtec()`将tec格网数据存到`nav->tec[]`
+* **combtec**()：合并`nav->tec[]`中时间相同的项。
 
-1. 执行流程：
-   * 开辟内存空间
-   * 扩展`file`的*到`efile[]` ，遍历`efile[] `：
-   * `fopen()`以读的方式打开
-   * 调用`readionexh()`读ionex文件头 
-   * 调用`readionexb()`读ionex文件体 ，其中会调用`addtec()`将tec格网数据存到`nav->tec[]`
-   * 读取完之后，调用`combtec()`合并tec格网数据
-   * 存DCB参数到`nav->cbias`
+**3. 执行流程**
 
+* 开辟内存空间
+* 扩展`file`的*到`efile[]` ，遍历`efile[] `：
+* `fopen()`以读的方式打开
+* 调用`readionexh()`读ionex文件头 
+* 调用`readionexb()`读ionex文件体 ，其中会调用`addtec()`将tec格网数据存到`nav->tec[]`
+* 读取完之后，调用`combtec()`合并tec格网数据
+* 存DCB参数到`nav->cbias`
+
+::: details 点击查看代码
 ```c
 extern void readtec(const char *file, nav_t *nav, int opt)
 {
@@ -1794,14 +1804,9 @@ extern void readtec(const char *file, nav_t *nav, int opt)
     }
 }
 ```
+:::
 
-3. 调用函数：
-   * **readionexh**()：读取文件头，循环读取每一行，根据注释读取前面内容，如果遇到`START OF AUX DATA` ，调用readionexdcb()读取DCB参数。
-   * **readionexdcb**()：循环读取DCB参数和对应的均方根误差，直到`END OF AUS DATA`
-   * **readionexb**()：循环读取TEC格网数据和均方根误差，`type`为1是TEC格网，`type`为2是均分根误差，调用`addtec()`将tec格网数据存到`nav->tec[]`
-   * **combtec**()：合并`nav->tec[]`中时间相同的项。
-
-#### 4、电离层 TEC 格网改正
+### 10.5.5 iontec()：TEC格网改正主入口函数
 
 ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/4b6779544615489cbcadaabd59c74d6d.png)
 
@@ -1812,238 +1817,239 @@ extern void readtec(const char *file, nav_t *nav, int opt)
 
 由所属时间段两端端点的TEC网格数据**时间插值**计算出电离层延时 (L1) (m) 
 
-   * 检测高度角和接收机高度是否大于阈值 
-   * 从 `nav_t.tec`中找出第一个`tec[i].time`>`time`信号接收时间 
-   * 确保 time是在所给出的`nav_t.tec`包含的时间段之中 ，通过确认所找到的时间段的右端点减去左端点，来确保时间间隔不为0 
-   * 调用`iondelay()`来计算所属时间段两端端点的电离层延时
-   * 由两端的延时，插值计算出观测时间点处的值 
+* 检测高度角和接收机高度是否大于阈值 
+* 从 `nav_t.tec`中找出第一个`tec[i].time`>`time`信号接收时间 
+* 确保 time是在所给出的`nav_t.tec`包含的时间段之中 ，通过确认所找到的时间段的右端点减去左端点，来确保时间间隔不为0 
+* 调用`iondelay()`来计算所属时间段两端端点的电离层延时
+* 由两端的延时，插值计算出观测时间点处的值 
 
-   ```c
-   extern int iontec(gtime_t time, const nav_t *nav, const double *pos,
-                     const double *azel, int opt, double *delay, double *var)
-   {
-       double dels[2],vars[2],a,tt;
-       int i,stat[2];
-       
-       
-       trace(3,"iontec  : time=%s pos=%.1f %.1f azel=%.1f %.1f\n",time_str(time,0),
-             pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
-       
-       if (azel[1]<MIN_EL||pos[2]<MIN_HGT) {   //检测高度角和接收机高度是否大于阈值
-           *delay=0.0;
-           *var=VAR_NOTEC;
-           return 1;
-       }
-       for (i=0;i<nav->nt;i++) {       //从 nav_t.tec中找出第一个tec[i].time>time信号接收时间
-           if (timediff(nav->tec[i].time,time)>0.0) break;
-       }
-       if (i==0||i>=nav->nt) {     //确保 time是在所给出的nav_t.tec包含的时间段之中
-           trace(2,"%s: tec grid out of period\n",time_str(time,0));
-           return 0;
-       }
-       if ((tt=timediff(nav->tec[i].time,nav->tec[i-1].time))==0.0) {  //通过确认所找到的时间段的右端点减去左端点，来确保时间间隔 != 0
-           trace(2,"tec grid time interval error\n");
-           return 0;
-       }
-       /* ionospheric delay by tec grid data */    //调用 iondelay来计算所属时间段两端端点的电离层延时
-       stat[0]=iondelay(time,nav->tec+i-1,pos,azel,opt,dels  ,vars  );
-       stat[1]=iondelay(time,nav->tec+i  ,pos,azel,opt,dels+1,vars+1);
-       
-       //由两端的延时，插值计算出观测时间点处的值
-       if (!stat[0]&&!stat[1]) {   //两个端点都计算出错，输出错误信息，返回 0
-           trace(2,"%s: tec grid out of area pos=%6.2f %7.2f azel=%6.1f %5.1f\n",
-                 time_str(time,0),pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
-           return 0;
-       }
-       if (stat[0]&&stat[1]) { /* linear interpolation by time */  //两个端点都有值，线性插值出观测时间点的值，返回 1
-           a=timediff(time,nav->tec[i-1].time)/tt;
-           *delay=dels[0]*(1.0-a)+dels[1]*a;
-           *var  =vars[0]*(1.0-a)+vars[1]*a;
-       }
-       else if (stat[0]) { /* nearest-neighbour extrapolation by time */   //只有一个端点有值，将其结果作为观测时间处的值，返回 1
-           *delay=dels[0];
-           *var  =vars[0];
-       }
-       else {
-           *delay=dels[1];
-           *var  =vars[1];
-       }
-       trace(3,"iontec  : delay=%5.2f std=%5.2f\n",*delay,sqrt(*var));
+```c
+extern int iontec(gtime_t time, const nav_t *nav, const double *pos,
+                 const double *azel, int opt, double *delay, double *var)
+{
+   double dels[2],vars[2],a,tt;
+   int i,stat[2];
+   
+   
+   trace(3,"iontec  : time=%s pos=%.1f %.1f azel=%.1f %.1f\n",time_str(time,0),
+         pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
+   
+   if (azel[1]<MIN_EL||pos[2]<MIN_HGT) {   //检测高度角和接收机高度是否大于阈值
+       *delay=0.0;
+       *var=VAR_NOTEC;
        return 1;
    }
-   ```
-
-##### 3.iondelay()：计算指定时间电离层延时 (L1) (m)
-
-   * while大循环`tec->ndata[2]`次：
-   * 调用`ionppp()`函数，计算当前电离层高度，穿刺点的位置 {lat,lon,h} (rad,m)和倾斜率
-   * 按照`M-SLM`映射函数重新计算倾斜率 
-   * 在日固系中考虑地球自转，重新计算穿刺点经度 
-   * 调用`interptec()`格网插值获取`vtec `
-   * `*delay+=fact*fs*vtec `,`*var+=fact*fact*fs*fs*rms*rms `
-
-   ```c
-   static int iondelay(gtime_t time, const tec_t *tec, const double *pos,
-                       const double *azel, int opt, double *delay, double *var)
-   {
-       const double fact=40.30E16/FREQ1/FREQ1; /* tecu->L1 iono (m) */
-       double fs,posp[3]={0},vtec,rms,hion,rp;
-       int i;
-       
-       trace(3,"iondelay: time=%s pos=%.1f %.1f azel=%.1f %.1f\n",time_str(time,0),
-             pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
-       
-       *delay=*var=0.0;
-       
-       //opt 模式选项   bit0: 0:earth-fixed,1:sun-fixed
-       //              bit1: 0:single-layer,1:modified single-layer
-       
-       for (i=0;i<tec->ndata[2];i++) { /* for a layer */
-           
-           hion=tec->hgts[0]+tec->hgts[2]*i;
-           
-           //调用ionppp()函数，计算当前电离层高度，穿刺点的位置 {lat,lon,h} (rad,m)和倾斜率
-           /* ionospheric pierce point position */
-           fs=ionppp(pos,azel,tec->rb,hion,posp);  
-           
-           if (opt&2) {    //按照M-SLM映射函数重新计算倾斜率
-               /* modified single layer mapping function (M-SLM) ref [2] */
-               rp=tec->rb/(tec->rb+hion)*sin(0.9782*(PI/2.0-azel[1]));
-               fs=1.0/sqrt(1.0-rp*rp);
-           }
-           if (opt&1) {    //在日固系中考虑地球自转，重新计算穿刺点经度
-               /* earth rotation correction (sun-fixed coordinate) */
-               posp[1]+=2.0*PI*timediff(time,tec->time)/86400.0;
-           }
-           /* interpolate tec grid data */     //格网插值获取vtec
-           if (!interptec(tec,i,posp,&vtec,&rms)) return 0;
-           
-           *delay+=fact*fs*vtec;
-           *var+=fact*fact*fs*fs*rms*rms;
-       }
-       trace(4,"iondelay: delay=%7.2f std=%6.2f\n",*delay,sqrt(*var));
-       
-       return 1;
+   for (i=0;i<nav->nt;i++) {       //从 nav_t.tec中找出第一个tec[i].time>time信号接收时间
+       if (timediff(nav->tec[i].time,time)>0.0) break;
    }
-   ```
+   if (i==0||i>=nav->nt) {     //确保 time是在所给出的nav_t.tec包含的时间段之中
+       trace(2,"%s: tec grid out of period\n",time_str(time,0));
+       return 0;
+   }
+   if ((tt=timediff(nav->tec[i].time,nav->tec[i-1].time))==0.0) {  //通过确认所找到的时间段的右端点减去左端点，来确保时间间隔 != 0
+       trace(2,"tec grid time interval error\n");
+       return 0;
+   }
+   /* ionospheric delay by tec grid data */    //调用 iondelay来计算所属时间段两端端点的电离层延时
+   stat[0]=iondelay(time,nav->tec+i-1,pos,azel,opt,dels  ,vars  );
+   stat[1]=iondelay(time,nav->tec+i  ,pos,azel,opt,dels+1,vars+1);
+   
+   //由两端的延时，插值计算出观测时间点处的值
+   if (!stat[0]&&!stat[1]) {   //两个端点都计算出错，输出错误信息，返回 0
+       trace(2,"%s: tec grid out of area pos=%6.2f %7.2f azel=%6.1f %5.1f\n",
+             time_str(time,0),pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
+       return 0;
+   }
+   if (stat[0]&&stat[1]) { /* linear interpolation by time */  //两个端点都有值，线性插值出观测时间点的值，返回 1
+       a=timediff(time,nav->tec[i-1].time)/tt;
+       *delay=dels[0]*(1.0-a)+dels[1]*a;
+       *var  =vars[0]*(1.0-a)+vars[1]*a;
+   }
+   else if (stat[0]) { /* nearest-neighbour extrapolation by time */   //只有一个端点有值，将其结果作为观测时间处的值，返回 1
+       *delay=dels[0];
+       *var  =vars[0];
+   }
+   else {
+       *delay=dels[1];
+       *var  =vars[1];
+   }
+   trace(3,"iontec  : delay=%5.2f std=%5.2f\n",*delay,sqrt(*var));
+   return 1;
+}
+```
 
-##### 4.ionppp()：计算电离层穿刺点
+### 10.5.6 iondelay()：计算指定时间电离层延时 (L1) (m)
+
+* while大循环`tec->ndata[2]`次：
+* 调用`ionppp()`函数，计算当前电离层高度，穿刺点的位置 {lat,lon,h} (rad,m)和倾斜率
+* 按照`M-SLM`映射函数重新计算倾斜率 
+* 在日固系中考虑地球自转，重新计算穿刺点经度 
+* 调用`interptec()`格网插值获取`vtec `
+* `*delay+=fact*fs*vtec `,`*var+=fact*fact*fs*fs*rms*rms `
+
+```c
+static int iondelay(gtime_t time, const tec_t *tec, const double *pos,
+                   const double *azel, int opt, double *delay, double *var)
+{
+   const double fact=40.30E16/FREQ1/FREQ1; /* tecu->L1 iono (m) */
+   double fs,posp[3]={0},vtec,rms,hion,rp;
+   int i;
+   
+   trace(3,"iondelay: time=%s pos=%.1f %.1f azel=%.1f %.1f\n",time_str(time,0),
+         pos[0]*R2D,pos[1]*R2D,azel[0]*R2D,azel[1]*R2D);
+   
+   *delay=*var=0.0;
+   
+   //opt 模式选项   bit0: 0:earth-fixed,1:sun-fixed
+   //              bit1: 0:single-layer,1:modified single-layer
+   
+   for (i=0;i<tec->ndata[2];i++) { /* for a layer */
+       
+       hion=tec->hgts[0]+tec->hgts[2]*i;
+       
+       //调用ionppp()函数，计算当前电离层高度，穿刺点的位置 {lat,lon,h} (rad,m)和倾斜率
+       /* ionospheric pierce point position */
+       fs=ionppp(pos,azel,tec->rb,hion,posp);  
+       
+       if (opt&2) {    //按照M-SLM映射函数重新计算倾斜率
+           /* modified single layer mapping function (M-SLM) ref [2] */
+           rp=tec->rb/(tec->rb+hion)*sin(0.9782*(PI/2.0-azel[1]));
+           fs=1.0/sqrt(1.0-rp*rp);
+       }
+       if (opt&1) {    //在日固系中考虑地球自转，重新计算穿刺点经度
+           /* earth rotation correction (sun-fixed coordinate) */
+           posp[1]+=2.0*PI*timediff(time,tec->time)/86400.0;
+       }
+       /* interpolate tec grid data */     //格网插值获取vtec
+       if (!interptec(tec,i,posp,&vtec,&rms)) return 0;
+       
+       *delay+=fact*fs*vtec;
+       *var+=fact*fact*fs*fs*rms*rms;
+   }
+   trace(4,"iondelay: delay=%7.2f std=%6.2f\n",*delay,sqrt(*var));
+   
+   return 1;
+}
+```
+
+### 10.5.7 ionppp()：计算电离层穿刺点
+
 位置 {lat,lon,h} (rad,m)和倾斜率做返回值 
 
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/e5f8c8b484e2412e86ff316d90d08702.png)
+![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/e5f8c8b484e2412e86ff316d90d08702.png)
 
 
-   ```c
-   extern double ionppp(const double *pos, const double *azel, double re,
-                        double hion, double *posp)
-   {
-       double cosaz,rp,ap,sinap,tanap;
-       
-       rp=re/(re+hion)*cos(azel[1]);   //(E.5.15)
-       // z并不是仰角azel[1]，而是仰角关于的补角，所以程序中在计算 rp是采用的是 cos(azel[1])的写法
-       ap=PI/2.0-azel[1]-asin(rp);     //(E.5.14)(E.5.16)
-       sinap=sin(ap);
-       tanap=tan(ap);
-       cosaz=cos(azel[0]);
-       posp[0]=asin(sin(pos[0])*cos(ap)+cos(pos[0])*sinap*cosaz);  //(E.5.17)
-       
-       if ((pos[0]> 70.0*D2R&& tanap*cosaz>tan(PI/2.0-pos[0]))||
-           (pos[0]<-70.0*D2R&&-tanap*cosaz>tan(PI/2.0+pos[0]))) {
-           posp[1]=pos[1]+PI-asin(sinap*sin(azel[0])/cos(posp[0]));    //(E.5.18a)
-       }       
-       else {
-           posp[1]=pos[1]+asin(sinap*sin(azel[0])/cos(posp[0]));       //(E.5.18b)
-       }
-       return 1.0/sqrt(1.0-rp*rp);     //返回倾斜率
+```c
+extern double ionppp(const double *pos, const double *azel, double re,
+                    double hion, double *posp)
+{
+   double cosaz,rp,ap,sinap,tanap;
    
-       //可能因为后面再从 TEC网格数据中插值时，并不需要高度信息，所以这里穿刺点位置posp[2]没有赋值
+   rp=re/(re+hion)*cos(azel[1]);   //(E.5.15)
+   // z并不是仰角azel[1]，而是仰角关于的补角，所以程序中在计算 rp是采用的是 cos(azel[1])的写法
+   ap=PI/2.0-azel[1]-asin(rp);     //(E.5.14)(E.5.16)
+   sinap=sin(ap);
+   tanap=tan(ap);
+   cosaz=cos(azel[0]);
+   posp[0]=asin(sin(pos[0])*cos(ap)+cos(pos[0])*sinap*cosaz);  //(E.5.17)
+   
+   if ((pos[0]> 70.0*D2R&& tanap*cosaz>tan(PI/2.0-pos[0]))||
+       (pos[0]<-70.0*D2R&&-tanap*cosaz>tan(PI/2.0+pos[0]))) {
+       posp[1]=pos[1]+PI-asin(sinap*sin(azel[0])/cos(posp[0]));    //(E.5.18a)
+   }       
+   else {
+       posp[1]=pos[1]+asin(sinap*sin(azel[0])/cos(posp[0]));       //(E.5.18b)
    }
-   ```
+   return 1.0/sqrt(1.0-rp*rp);     //返回倾斜率
 
-##### 5.dataindex()：获取TEC格网数据下标
+   //可能因为后面再从 TEC网格数据中插值时，并不需要高度信息，所以这里穿刺点位置posp[2]没有赋值
+}
+```
+
+### 10.5.8 dataindex()：获取TEC格网数据下标
 
 先判断点位是否在格网中，之后获取网格点的tec数据在 tec.data中的下标
 
-   ```c
-   static int dataindex(int i, int j, int k, const int *ndata) //(i:lat,j:lon,k:hgt)
-   {
-       if (i<0||ndata[0]<=i||j<0||ndata[1]<=j||k<0||ndata[2]<=k) return -1;
-       return i+ndata[0]*(j+ndata[1]*k);
-   }
-   ```
+```c
+static int dataindex(int i, int j, int k, const int *ndata) //(i:lat,j:lon,k:hgt)
+{
+   if (i<0||ndata[0]<=i||j<0||ndata[1]<=j||k<0||ndata[2]<=k) return -1;
+   return i+ndata[0]*(j+ndata[1]*k);
+}
+```
 
-##### 6.interptec()：插值计算穿刺点处TEC
+### 10.5.9 interptec()：插值计算穿刺点处TEC
 
 通过在经纬度网格点上进行双线性插值，计算第k个高度层时穿刺点处的电子数总量TEC
 
-   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/8c24cde54f6e4005b7858f2fef0c1dce.png)
+![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/8c24cde54f6e4005b7858f2fef0c1dce.png)
 
 
-   ```c
-   /* interpolate tec grid data -------------------------------------------- -----
-    * args:tec_t *tec      I   tec grid data
-    *      int k           I   高度方向上的序号，可以理解为电离层序号
-    *      double *posp    I   pierce point position {lat,lon,h} (rad,m)
-    *      double *value   O   计算得到的刺穿点处的电子数总量(tecu)
-    *      double *rms     O   所计算的电子数总量的误差的标准差(tecu)
-    ---------------------------------------------------------------------------- */
-   static int interptec(const tec_t *tec, int k, const double *posp, double *value,
-                        double *rms)
-   {
-       double dlat,dlon,a,b,d[4]={0},r[4]={0};
-       int i,j,n,index;
-       
-       trace(3,"interptec: k=%d posp=%.2f %.2f\n",k,posp[0]*R2D,posp[1]*R2D);
-       *value=*rms=0.0;        // 将 value和 rms所指向的值置为 0
-       
-       if (tec->lats[2]==0.0||tec->lons[2]==0.0) return 0; //检验 tec的纬度和经度间隔是否为 0。是，则直接返回 0
-       
-       // 将穿刺点的经纬度分别减去网格点的起始经纬度，再除以网格点间距，对结果进行取整，
-       // 得到穿刺点所在网格的序号和穿刺点所在网格的位置(比例) i,j 
-       dlat=posp[0]*R2D-tec->lats[0];
-       dlon=posp[1]*R2D-tec->lons[0];
-       if (tec->lons[2]>0.0) dlon-=floor( dlon/360)*360.0; /*  0<=dlon<360 */
-       else                  dlon+=floor(-dlon/360)*360.0; /* -360<dlon<=0 */
-       a=dlat/tec->lats[2];
-       b=dlon/tec->lons[2];
-       i=(int)floor(a); a-=i;
-       j=(int)floor(b); b-=j;
-       
-       // 调用 dataindex() 函数分别计算这些网格点的 tec 数据在 tec.data中的下标，
-       // 按从左下到右上的顺序
-       // 从而得到这些网格点处的 TEC 值和相应误差的标准差
-       /* get gridded tec data */
-       for (n=0;n<4;n++) {     
-           if ((index=dataindex(i+(n%2),j+(n<2?0:1),k,tec->ndata))<0) continue;
-           d[n]=tec->data[index];
-           r[n]=tec->rms [index];
-       }
-       if (d[0]>0.0&&d[1]>0.0&&d[2]>0.0&&d[3]>0.0) {
-           // 穿刺点位于网格内，使用双线性插值计算出穿刺点的 TEC 值
-           /* bilinear interpolation (inside of grid) */
-           *value=(1.0-a)*(1.0-b)*d[0]+a*(1.0-b)*d[1]+(1.0-a)*b*d[2]+a*b*d[3];
-           *rms  =(1.0-a)*(1.0-b)*r[0]+a*(1.0-b)*r[1]+(1.0-a)*b*r[2]+a*b*r[3];
-       }
-       // 穿刺点不位于网格内,使用最邻近的网格点值作为穿刺点的 TEC值，不过前提是网格点的 TEC>0
-       /* nearest-neighbour extrapolation (outside of grid) */
-       else if (a<=0.5&&b<=0.5&&d[0]>0.0) {*value=d[0]; *rms=r[0];}
-       else if (a> 0.5&&b<=0.5&&d[1]>0.0) {*value=d[1]; *rms=r[1];}
-       else if (a<=0.5&&b> 0.5&&d[2]>0.0) {*value=d[2]; *rms=r[2];}
-       else if (a> 0.5&&b> 0.5&&d[3]>0.0) {*value=d[3]; *rms=r[3];}
-       // 否则，选用四个网格点中 >0的值的平均值作为穿刺点的 TEC值
-       else {
-           i=0;
-           for (n=0;n<4;n++) if (d[n]>0.0) {i++; *value+=d[n]; *rms+=r[n];}
-           if(i==0) return 0;
-           *value/=i; *rms/=i;
-       }
-       return 1;
+```c
+/* interpolate tec grid data -------------------------------------------- -----
+* args:tec_t *tec      I   tec grid data
+*      int k           I   高度方向上的序号，可以理解为电离层序号
+*      double *posp    I   pierce point position {lat,lon,h} (rad,m)
+*      double *value   O   计算得到的刺穿点处的电子数总量(tecu)
+*      double *rms     O   所计算的电子数总量的误差的标准差(tecu)
+---------------------------------------------------------------------------- */
+static int interptec(const tec_t *tec, int k, const double *posp, double *value,
+                    double *rms)
+{
+   double dlat,dlon,a,b,d[4]={0},r[4]={0};
+   int i,j,n,index;
+   
+   trace(3,"interptec: k=%d posp=%.2f %.2f\n",k,posp[0]*R2D,posp[1]*R2D);
+   *value=*rms=0.0;        // 将 value和 rms所指向的值置为 0
+   
+   if (tec->lats[2]==0.0||tec->lons[2]==0.0) return 0; //检验 tec的纬度和经度间隔是否为 0。是，则直接返回 0
+   
+   // 将穿刺点的经纬度分别减去网格点的起始经纬度，再除以网格点间距，对结果进行取整，
+   // 得到穿刺点所在网格的序号和穿刺点所在网格的位置(比例) i,j 
+   dlat=posp[0]*R2D-tec->lats[0];
+   dlon=posp[1]*R2D-tec->lons[0];
+   if (tec->lons[2]>0.0) dlon-=floor( dlon/360)*360.0; /*  0<=dlon<360 */
+   else                  dlon+=floor(-dlon/360)*360.0; /* -360<dlon<=0 */
+   a=dlat/tec->lats[2];
+   b=dlon/tec->lons[2];
+   i=(int)floor(a); a-=i;
+   j=(int)floor(b); b-=j;
+   
+   // 调用 dataindex() 函数分别计算这些网格点的 tec 数据在 tec.data中的下标，
+   // 按从左下到右上的顺序
+   // 从而得到这些网格点处的 TEC 值和相应误差的标准差
+   /* get gridded tec data */
+   for (n=0;n<4;n++) {     
+       if ((index=dataindex(i+(n%2),j+(n<2?0:1),k,tec->ndata))<0) continue;
+       d[n]=tec->data[index];
+       r[n]=tec->rms [index];
    }
-   ```
+   if (d[0]>0.0&&d[1]>0.0&&d[2]>0.0&&d[3]>0.0) {
+       // 穿刺点位于网格内，使用双线性插值计算出穿刺点的 TEC 值
+       /* bilinear interpolation (inside of grid) */
+       *value=(1.0-a)*(1.0-b)*d[0]+a*(1.0-b)*d[1]+(1.0-a)*b*d[2]+a*b*d[3];
+       *rms  =(1.0-a)*(1.0-b)*r[0]+a*(1.0-b)*r[1]+(1.0-a)*b*r[2]+a*b*r[3];
+   }
+   // 穿刺点不位于网格内,使用最邻近的网格点值作为穿刺点的 TEC值，不过前提是网格点的 TEC>0
+   /* nearest-neighbour extrapolation (outside of grid) */
+   else if (a<=0.5&&b<=0.5&&d[0]>0.0) {*value=d[0]; *rms=r[0];}
+   else if (a> 0.5&&b<=0.5&&d[1]>0.0) {*value=d[1]; *rms=r[1];}
+   else if (a<=0.5&&b> 0.5&&d[2]>0.0) {*value=d[2]; *rms=r[2];}
+   else if (a> 0.5&&b> 0.5&&d[3]>0.0) {*value=d[3]; *rms=r[3];}
+   // 否则，选用四个网格点中 >0的值的平均值作为穿刺点的 TEC值
+   else {
+       i=0;
+       for (n=0;n<4;n++) if (d[n]>0.0) {i++; *value+=d[n]; *rms+=r[n];}
+       if(i==0) return 0;
+       *value/=i; *rms/=i;
+   }
+   return 1;
+}
+```
 
 ## 10.6 对流层处理
 
-### 10.3.1 对流层延迟改正概述
+### 10.6.1 对流层延迟改正概述
 
 1. 对流层延迟一般指非电离大气对电磁波的折射，折射效应大部分发生在对流层，因此称
    为对流层延迟误差。对流层延迟影响与信号高度角有关，天顶方向影响能够达到2.3m，而高
@@ -2057,7 +2063,7 @@ extern void readtec(const char *file, nav_t *nav, int opt)
    d_{trop}=d_{zpd}M_d(\theta)+d_{zpw}M_w(\theta)
    $$
 
-### 10.3.2 tropcorr()：根据选项调用对应函数计算对流层延迟T 
+### 10.6.2 tropcorr()：根据选项调用对应函数计算对流层延迟T 
 
 在rescode()中被调用，调用tropmodel()、sbstropcorr() 根据选项，计算对流层延迟T 
 
@@ -2086,7 +2092,7 @@ extern int tropcorr(gtime_t time, const nav_t *nav, const double *pos,
     return 1;
 }
 ```
-### 10.3.3 tropmodel()：Saastamoinen对流层模型改正 
+### 10.6.3 tropmodel()：Saastamoinen对流层模型改正 
 
 ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/708bfc5a018f4205a9551c56a44ec552.png)
 
@@ -2113,9 +2119,25 @@ extern double tropmodel(gtime_t time, const double *pos, const double *azel,
     trpw=0.002277*(1255.0/temp+0.05)*e/cos(z);              //求湿延迟Tw (E.5.4)
     return trph+trpw;       // Saastamoinen中对流层延迟为静力学延迟Th湿延迟Tw的和
 }
-```
+``` 
+-->
 
+<!-- 
 
+**1. tec_t结构体：存tec格网数据**
 
+```c
+typedef struct {        /* TEC grid type */
+    gtime_t time;       /* epoch time (GPST) */
+    int ndata[3];       /* TEC grid data size {nlat,nlon,nhgt} */
+    double rb;          /* earth radius (km) */
+    double lats[3];     /* latitude start/interval (deg) */
+    double lons[3];     /* longitude start/interval (deg) */
+    double hgts[3];     /* heights start/interval (km) */
+    double *data;       /* TEC grid data (tecu) */
+    float *rms;         /* RMS values (tecu) */
+} tec_t;
+``` 
 
-
+* 其存储在`nav_t`结构体`tec`中 ，`nt`表示tec数量
+-->
