@@ -20,7 +20,9 @@ RTKLIB提供的参考手册组织方式过于冗杂，至少我个人认为它�
 - [Navigation-Learning](https://github.com/LiZhengXiao99/Navigation-Learning)
 
   > 直接拷贝了其中有关 RTKLIB 部分的描述；
+  >
   > 重新组织了其文档结构，让文档格式更加标准化；
+  >
   > 该项目内容较全，但其中部分内容还需要重述或补充说明。
 
 ## 4. 联系方式
