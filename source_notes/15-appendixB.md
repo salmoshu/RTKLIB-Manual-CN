@@ -57,6 +57,12 @@ RTKLIB 中的 raim 采用的是伪距残差检测法，伪距残差检测法要�
 
 ## B.4 无电离层组合
 
+**问题：**
+
+无电离层组合的误差方差为什么要乘以 3.0^2？
+
+**解答：**
+
 在 GNSS（如 GPS）中，无电离层线性组合（IFLC）通过线性组合 L1（$f_1 = 1575.42 \, \text{MHz}$）和 L2（$f_2 = 1227.60 \, \text{MHz}$）频率的观测值（如伪距或载波相位）来消除电离层延迟一阶项[4]。电离层延迟与频率平方成反比，因此组合公式为：
 
 $$P_{IF} = \frac{f_1^2}{f_1^2 - f_2^2} P_1 - \frac{f_2^2}{f_1^2 - f_2^2} P_2$$
@@ -80,3 +86,62 @@ $$\sqrt{k_1^2 + k_2^2} = \sqrt{2.546^2 + 1.546^2} \approx \sqrt{8.872} \approx 2
 **综上所述：**
 
 GNSS 无电离层组合（IFLC）使用 GPS L1 和 L2 频率（1575.42 MHz 和 1227.60 MHz）的平方比，得到组合系数 2.546 和 1.546。噪声方差放大因子为 $\sqrt{2.546^2 + 1.546^2} \approx 2.978 \approx 3.0$。为简化计算，实际使用 varr *= SQR(3.0)，表示方差放大 9 倍。
+
+## B.5 差分数据中 GLO 卫星无法投入计算
+
+**问题：**
+
+<img style="width: 100%; margin: 0 auto; display: block;" src="https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250711-135845.jpg"/>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图B.5-1 GLO 卫星无法投入计算的现象</p>
+
+**Debug：**
+
+```c
+/* save_msm_obs (rtcm3.c): save obs data in MSM message */
+1. freq 为 0，导致 L 数据为0
+2. freq=fcn<-7?0.0:code2freq(sys,code[k],fcn);      
+   fcn 标识为 -8，导致 freq 为 0
+3. rtcm->nav.geph[prn-1].sat 为 0，导致 fcn 无法被正常赋值
+	if ...
+	else if (rtcm->nav.geph[prn-1].sat==sat) {
+	     fcn=rtcm->nav.geph[prn-1].frq;
+	}
+4. GLO 卫星会根据观测数据中的 PRN 号到星历数据中找到对应的频段号才能计算出最终的载波相位值。
+```
+
+**解决：**
+
+```c
+/* 实时程序 */
+// 在 decoderaw 中解析 rtcm3 的部分，将 rover 的 nav 结构体拷贝给 base 的 nav 结构体
+if(index==0) {
+   memcpy(&svr->rtcm[1].nav, nav, sizeof(nav_t));
+}
+
+/* 后处理程序 */
+如果是后处理的话，RTCM 1020 报文需要单独合入 RINEX 中。
+```
+
+**总结：**
+
+除了星历中包含 GLONASS FCN的信息，RTCM MSM5 和 MSM7 也包含该内容。不过通常差分数据的格式是 MSM4。
+
+由资料[18]可知，RTKLIB 还无法从任何 MSM 消息中提取频率信息，并且如果没有 GLONASS 星历表消息，则无法为任何 MSM 消息（1-7）包含 GLONASS 相位观测值。不过 demo5 代码中添加了一项功能，解决了 MSM5 和 MSM7 消息的这个问题，但其他消息仍然无法在 RINEX 文件中生成相位观测值。
+
+## B.6 雅可比矩阵、几何矩阵和设计矩阵
+
+**问题：**
+
+雅可比矩阵、几何矩阵和设计矩阵是一回事吗？
+
+**解答：**
+
+**是的**。在 GNSS 定位中，**雅可比矩阵 = 几何矩阵 = 设计矩阵**，都是指将非线性观测方程线性化后，状态量（如接收机位置、钟差）对观测值（如伪距）的偏导数构成的矩阵，记作 H 或 G
+
+| 名称        | 语境/侧重点         | 说明                                        |
+| --------- | -------------- | ----------------------------------------- |
+| **雅可比矩阵** | 数学/优化          | 强调它是非线性函数的一阶偏导矩阵，用于线性化观测模型。               |
+| **几何矩阵**  | GNSS 导航/几何因子分析 | 强调它包含了**卫星与接收机之间的几何关系**（如方向余弦），直接影响 GDOP。 |
+| **设计矩阵**  | 最小二乘/参数估计      | 强调它是**观测方程对未知参数的线性系数矩阵**，用于构建法方程。         |
+
+笔者将尽量使用雅可比矩阵的描述，因为它使用更为广泛。

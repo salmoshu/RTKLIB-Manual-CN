@@ -102,7 +102,7 @@ object-position: center; /* 裁剪图片的中心部分 */ -->
 
 ## A.4 批处理程序
 
-::: details 点击查看代码
+::: details 点击查看完整代码
 ```python
 import os
 import subprocess

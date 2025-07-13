@@ -219,7 +219,7 @@
 
      * nav_t存eph、geph、seph、peph、pclk、alm、erp的方式与obs_t存obs的方式类似
 
-     ::: details 点击查看代码
+     ::: details 点击查看完整代码
      ```c
      typedef struct {        /* navigation data type */
          int n,nmax;         /* number of broadcast ephemeris */
@@ -332,7 +332,7 @@
    * 调用`sortobs()`,根据 time, rcv, sat ，对`obs->data`的元素进行排序、去重，得到历元数`nepoch`
    * 调用`uniqnav()`,进行星历数据的排序去重
 
-   ::: details 点击查看代码
+   ::: details 点击查看完整代码
    ```c
    static int readobsnav(gtime_t ts, gtime_t te, double ti, char **infile,
                          const int *index, int n, const prcopt_t *prcopt,
@@ -412,7 +412,7 @@
 
 * **sortobs()**：根据time, rcv, sat ，对`obs->data`的元素进行排序、去重，返回历元数。
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static int cmpobs(const void *p1, const void *p2)
   {
@@ -466,7 +466,7 @@
 
   **uniqeph()**：根据`ttr`、`toe`对`nav->eph`中的元素排序，根据`sat`和`iode`去重，根据新的星历数据`eph_t`的数量，`realloc`重新分配内存空间。
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static int cmpeph(const void *p1, const void *p2)
   {
@@ -514,7 +514,7 @@
 * 调用 `readrnxfile`，循环解压读取 `files[]` 
 * 如果测站名字为空，就给依据头文件自动赋 4 个字符的名字 
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   extern int readrnxt(const char *file, int rcv, gtime_t ts, gtime_t te,
                       double tint, const char *opt, obs_t *obs, nav_t *nav,
@@ -564,7 +564,7 @@
 * 调用 `readrnxfp()` ，从文件描述符fp中读取文件 
 * 删除 `tmpfile` 
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static int readrnxfile(const char *file, gtime_t ts, gtime_t te, double tint,
                          const char *opt, int flag, int index, char *type,
@@ -607,7 +607,7 @@
 * 调用`readrnxh()`读取头文件。并获取文件类型`type`
 * 根据type调用对应的函数进行分类读取，`readrnxobs()`读OBS文件，`readrnxnav()`读NAV文件，调用`readrnxnav()`读clock文件。
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static int readrnxfp(FILE *fp, gtime_t ts, gtime_t te, double tint,
                        const char *opt, int flag, int index, char *type,
@@ -654,7 +654,7 @@
 
   ![](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/22c34202b8934f0c97a3a9b5dd8fb2b1.png)
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static int readrnxh(FILE *fp, double *ver, char *type, int *sys, int *tsys,
                       char tobs[][MAXOBSTYPE][4], nav_t *nav, sta_t *sta)
@@ -748,7 +748,7 @@ decode_obsh()、readrnxobs()->readrnxobsb()->decode_obsepoch()、decode_obsdata(
 >   *tobs[i][nt]='\0';  //存储观测类型，分星座类型用三维数组进行存储【星座类型】【观测类型】【字符串数4】
 > ```
 
-::: details 点击查看代码
+::: details 点击查看完整代码
 ```c
 static void decode_obsh(FILE *fp, char *buff, double ver, int *tsys,
                         char tobs[][MAXOBSTYPE][4], nav_t *nav, sta_t *sta)
@@ -1014,7 +1014,7 @@ static void decode_obsh(FILE *fp, char *buff, double ver, int *tsys,
      * 如果不是第一行则调用`decode_obsdata()`函数对该行观测数据进行数据解码，读取一个历元内一颗卫星的观测值 ，到data[n]
      * 知道读取数量 i 等于`decode_obsepoch()`获取的卫星数量`nsat`，结束循环，返回读取的观测值数（卫星数）
 
-   ::: details 点击查看代码
+   ::: details 点击查看完整代码
    ```c
    static int readrnxobsb(FILE *fp, const char *opt, double ver, int *tsys,
                           char tobs[][MAXOBSTYPE][4], int *flag, obsd_t *data,
@@ -1075,7 +1075,7 @@ static void decode_obsh(FILE *fp, char *buff, double ver, int *tsys,
 
 * **set_index()**：将`tobs`数组中存的观测值类型信息存到`sigind_t`类型的`ind`结构体中
 
-  ::: details 点击查看代码
+  ::: details 点击查看完整代码
   ```c
   static void set_index(double ver, int sys, const char *opt,
                         char tobs[MAXOBSTYPE][4], sigind_t *ind)
@@ -1204,7 +1204,7 @@ static void decode_obsh(FILE *fp, char *buff, double ver, int *tsys,
      * 读取`epoh flag` 到 `flag`
      * 读取历元时间 `time`
 
-   ::: details 点击查看代码
+   ::: details 点击查看完整代码
    ```c
    static int decode_obsepoch(FILE *fp, char *buff, double ver, gtime_t *time,
                               int *flag, int *sats)
@@ -1280,7 +1280,7 @@ static void decode_obsh(FILE *fp, char *buff, double ver, int *tsys,
 * 同一个频率有不同的观测码，取优先级高的 
 * 根据索引`ind`中的观测值类型，遍历观测值，`val[i]`、`lli[i]`存入`obs`中 
 
-   ::: details 点击查看代码
+   ::: details 点击查看完整代码
    ```c
    static int decode_obsdata(FILE *fp, char *buff, double ver, int mask,
                              sigind_t *index, obsd_t *obs)

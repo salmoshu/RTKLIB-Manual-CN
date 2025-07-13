@@ -1,10 +1,10 @@
-# 8. 配置选项与调试
+# 7. 配置选项与调试
 
-## 8.1 配置文件读取
+## 7.1 配置文件读取
 
 ![image-20231024152747192](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231024152747192.png)
 
-### 8.1.1 Option文件格式介绍
+### 7.1.1 Option文件格式介绍
 
 * 配置文件包含了文件选项（filopt_t ）、结果输出选项（solopt_t ）、解算方式选项（prcopt_t ）三大块，用于实时和后处理定位解算程序 RTKNAVI、RTKPOST、RTKRCV、RNX2RTKP。
 
@@ -14,7 +14,7 @@
 
 * 以 # 开头的行和行中#之后的文本被视为注释。
 
-### 8.1.2 存Option的类型
+### 7.1.2 存Option的类型
 
 #### 1. prcopt_t 结构体：存算法处理选项
 
@@ -183,7 +183,7 @@ typedef struct {        /* option type */
   static char snrmask_[NFREQ][1024];
   ```
 
-### 8.1.3 options.c函数
+### 7.1.3 options.c函数
 
 #### 1.chop ()：去除#后的注释，把#替换为\0。
 
@@ -546,13 +546,13 @@ extern void setsysopts(const prcopt_t *prcopt, const solopt_t *solopt,
 }
   ```
 
-## 8.2 Trace 输出
+## 7.2 Trace 输出
 
 > 在 rtklib.h 中加入 #define TRACE，启用 trace ，不定义则将 trace 函数全赋空值：
 
 ![image-20231024152507571](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231024152507571.png)
 
-### 8.2.1 rtkcmn.c关于trace的静态全局变量
+### 7.2.1 rtkcmn.c关于trace的静态全局变量
 
   ```c
 static FILE *fp_trace=NULL;     //trace的文件指针
@@ -563,7 +563,7 @@ static gtime_t time_trace={0};  //打开trace的时间，获取的系统时间�
 static lock_t lock_trace;       //trace的进程锁
   ```
 
-### 8.2.2 Trace 相关函数
+### 7.2.2 Trace 相关函数
 
 #### 1.trace()：将传入的 trace 格式化字符串写入 trace 文件
 
@@ -802,11 +802,11 @@ extern void traceb(int level, const uint8_t *p, int n)
 }
   ```
 
-## 8.3 结果输出
+## 7.3 结果输出
 
 ![image-20231024152344219](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231024152344219.png)
 
-### 8.3.1 结果相关
+### 7.3.1 结果相关
 
 #### 1. solopt_t 结构体：存结果输出选项
 
@@ -878,7 +878,7 @@ typedef struct {        /* solution status type */
 * slipc：
 * rejc：
 
-### 8.3.2 结果文件头输出
+### 7.3.2 结果文件头输出
 
 #### 1. outhead
 
@@ -929,7 +929,7 @@ static int outhead(const char *outfile, char **infile, int n,
                 "sdyz(m)",sep,"sdzx(m)",sep,"age(s)",sep,"ratio");
   ```
 
-### 8.3.3 结果文件体输出
+### 7.3.3 结果文件体输出
 
 #### 1. outsol
 

@@ -66,7 +66,7 @@ e_{rcv}^2 \cdot \left(0.01 \cdot 2^{rcvstd_{P} + 5)} \right)^2
 **注意：**
 
 - **无电离层组合（IONOOPT_IFLC）**：$\sigma^2 = \sigma^2 \cdot 3^2$（该部分参考附录B.4）
-- **其他误差**：varerr 函数外部还会加上大气层等误差（参考 [RTKLIB-Manual-CN E.6.3节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.6.html#e-6-3-接收机位置和钟差估计)）
+- **其他误差**：`varerr` 函数外部还会加上大气层等误差（参考 [RTKLIB-Manual-CN E.6.3节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.6.html#e-6-3-接收机位置和钟差估计)）
 - **$R_r$ 的设置**：低成本接收机设置较大的值效果会更好（如 300），而对于更昂贵的接收器，默认值则设定为 100，因为它们的伪距观测噪声较小。较大的值往往会使卡尔曼滤波器更快收敛，也会加速首次固定，但同时也增加了假固定的可能性。如果增加该值，建议将pos2-arthres1设置得足够低，以防止滤波器尚未收敛时就进行固定。
 
 #### C.3.1.2 相对定位中的模型（单差）
@@ -148,7 +148,7 @@ e_{rcv}^2 \cdot (rcvstd_{L} \cdot 0.004 \cdot 0.2)^2, & \text{phase}
 
 - **单差问题**：公式开始的因子 2.0 的存在是由于 RTK 定位中单差观测的特性，假设两者流动站和基站观测误差方差相等（$\sigma^2$），那么单差误差为 $\text{var}_{sd} = \sigma_{\text{rover}}^2 + \sigma_{\text{base}}^2 = 2 \cdot \sigma^2$；
 - **无电离层组合（IONOOPT_IFLC）**：$\sigma^2 = \sigma^2 \cdot 3^2$（该部分参考附录B.4）
-- **其他误差**：varerr 函数外部还会加上大气层等误差（参考 [RTKLIB-Manual-CN E.6.3节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.6.html#e-6-3-接收机位置和钟差估计)）
+- **其他误差**：`varerr` 函数外部还会加上大气层等误差（参考 [RTKLIB-Manual-CN E.6.3节](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.6.html#e-6-3-接收机位置和钟差估计)）
 
 ### C.3.2 观测模型源码解析
 
@@ -306,7 +306,7 @@ $E((E_r^Tw)(E_r^Tw)^T)=E(E_r^Tww^TE_r)=E_r^TE(ww^T)E_r=E_r^T \Sigma E_r$
 
 该函数确保状态量在时间维度上正确演进，为后续量测更新（如 `ddres`）提供基础，重点可以关注 `udpos` 和 `udbias`。
 
-::: details 点击查看代码
+::: details 点击查看完整代码
 ```c
 /* Temporal update of states --------------------------------------------------*/
 static void udstate(rtk_t *rtk, const obsd_t *obs, const int *sat,
@@ -379,7 +379,7 @@ ecef2pos(rtk->x,pos);
 covecef(pos,Q,Qv);
 ```
 
-::: details 点击查看代码
+::: details 点击查看完整代码
 ```c
 /* Temporal update of position/velocity/acceleration -------------------------*/
 static void udpos(rtk_t *rtk, double tt)
@@ -490,7 +490,7 @@ static void udpos(rtk_t *rtk, double tt)
     /* 为加速度状态添加过程噪声，建模为随机游走噪声 */
     /* Q 为 3x3 协方差矩阵，水平分量（opt->prn[3]）和垂直分量（opt->prn[4]） */
     Q[0]=Q[4]=SQR(rtk->opt.prn[3])*fabs(tt); /* 水平加速度噪声：Q[0,0] = Q[1,1] = (prn[3])^2 * |tt| */
-    Q[8]=SQR(rtk->opt.prn[4])*fabs(tt);       /* 垂直加速度噪声：Q[2,2] = (prn[4])^2 * |tt| */
+    Q[8]=SQR(rtk->opt.prn[4])*fabs(tt);      /* 垂直加速度噪声：Q[2,2] = (prn[4])^2 * |tt| */
     
     /* 将过程噪声从本地坐标系（ENU）转换为地球固定系（ECEF） */
     ecef2pos(rtk->x,pos); /* 将当前位置 x[0:2] 转为经纬高 pos */
@@ -534,7 +534,7 @@ P[j,j] = P[j,j] + (\text{opt->prn[0]})^2 \cdot |\text{tt}|
 - `fabs(tt)`：取绝对值，确保噪声增量为正。
 - `rtk->opt.prn[0]*rtk->opt.prn[0]`：将标准差平方，得到方差增量（m^2/s）。
 
-::: details 点击查看代码
+::: details 点击查看完整代码
 ```c
 /* temporal update of phase biases -------------------------------------------*/
 static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,
