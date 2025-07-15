@@ -13,7 +13,7 @@ sidebarDepth: 1
 
 RTKLIB 为了统一数学与程序描述，观测误差模型是以载波相位为基础的，而后通过 $R_r$ 误差转换因子，将其转换为伪距误差数值水平。其中唯一的多普勒参数除外（Doppler Freq Error (Hz)）。
 
-单点定位和相对定位定义中的模型基本相同，只存在稍微的差别，两者可以从 `varerr` 函数的定义中可以看到。
+单点定位和相对定位定义中的模型基本相同，只存在稍微的差别，可以从 `varerr` 函数的定义中看到。
 
 最后再次说明，本章节研究的内容是基于 RTKLIB demo5 版本。
 
@@ -306,7 +306,7 @@ $E((E_r^Tw)(E_r^Tw)^T)=E(E_r^Tww^TE_r)=E_r^TE(ww^T)E_r=E_r^T \Sigma E_r$
 
 该函数确保状态量在时间维度上正确演进，为后续量测更新（如 `ddres`）提供基础，重点可以关注 `udpos` 和 `udbias`。
 
-::: details 点击查看完整代码
+::: details 点击查看代码
 ```c
 /* Temporal update of states --------------------------------------------------*/
 static void udstate(rtk_t *rtk, const obsd_t *obs, const int *sat,
@@ -379,7 +379,7 @@ ecef2pos(rtk->x,pos);
 covecef(pos,Q,Qv);
 ```
 
-::: details 点击查看完整代码
+::: details 点击查看代码
 ```c
 /* Temporal update of position/velocity/acceleration -------------------------*/
 static void udpos(rtk_t *rtk, double tt)
@@ -534,7 +534,7 @@ P[j,j] = P[j,j] + (\text{opt->prn[0]})^2 \cdot |\text{tt}|
 - `fabs(tt)`：取绝对值，确保噪声增量为正。
 - `rtk->opt.prn[0]*rtk->opt.prn[0]`：将标准差平方，得到方差增量（m^2/s）。
 
-::: details 点击查看完整代码
+::: details 点击查看代码
 ```c
 /* temporal update of phase biases -------------------------------------------*/
 static void udbias(rtk_t *rtk, double tt, const obsd_t *obs, const int *sat,

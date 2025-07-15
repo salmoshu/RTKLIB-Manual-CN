@@ -10,7 +10,7 @@
 
 配置参数与源码中的变量对应关系，可以查看sysopts数组（options.c）:
 
-::: details 点击查看完整代码
+::: details 点击查看代码
 ```c
 EXPORT opt_t sysopts[]={
     {"pos1-posmode",    3,  (void *)&prcopt_.mode,       MODOPT },

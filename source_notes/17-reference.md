@@ -19,3 +19,7 @@
 [17] S.Schear, W.Gurtner and J.Feltens, IONEX: The IONosphere Map EXchange Format Version 1, February 25, 1998 <br>
 [18] [RTKLIB 将 GLONASS RTCM MSM 消息转换为 RINEX](https://rtklibexplorer.wordpress.com/2020/11/01/converting-glonass-rtcm-msm-messages-to-rinex-with-rtklib/) <br>
 [19] [GNSS观测方程及线性组合](https://blog.csdn.net/hyisoe/article/details/114385269) <br>
+[20] [RTKLIB中的EKF模型](https://zhuanlan.zhihu.com/p/673699666) <br>
+[21] [GNSS整周模糊度固定算法（LAMBDA算法）](https://blog.csdn.net/qq_41782151/article/details/121017678)
+[22] [【GNSS】LAMBDA 模糊度固定方法](https://zhuanlan.zhihu.com/p/618240953)
+[23] [【GNSS】周跳探测](https://zhuanlan.zhihu.com/p/563131946)

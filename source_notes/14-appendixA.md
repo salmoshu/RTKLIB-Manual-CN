@@ -102,7 +102,7 @@ object-position: center; /* 裁剪图片的中心部分 */ -->
 
 ## A.4 批处理程序
 
-::: details 点击查看完整代码
+::: details 点击查看代码
 ```python
 import os
 import subprocess
@@ -506,3 +506,11 @@ u-blox F9P = 0.0 cm
 
 - **理论从属**。比率检验是整数孔径估计理论提供的一类检验方法之一；
 - **最优检验**。ratio-test不是最优的，最优的检验，即在用户固定的失败率下最大化做出正确决策概率的检验。
+
+## A.10 模糊度固定原理
+
+这里参考自网传资料，而并不知道其具体来源，因此这里并没有注明来源，如有侵权还请告知去除。
+
+该网传资料一部分内容参考了资料 [21][22]。
+
+<embed src="/algorithm/RTKLIB-Source-Notes/pdf/模糊度固定原理.pdf" width="100%" height="1000px" />
