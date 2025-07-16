@@ -4,7 +4,7 @@
 
 RTKLIB提供的参考手册组织方式过于冗杂，至少我个人认为它谈不上特别有条理。项目维护在线文档：
 - [ RTKLIB 手册中文版](https://salmoshu.github.io/algorithm/RTKLIB-Manual-CN/01-overview.html)
-- [ RTKLIB 源码解析](https://salmoshu.github.io/algorithm/RTKLIB-Source-Notes/)
+- [ RTKLIB 源码解析](https://salmoshu.github.io/algorithm/RTKLIB-Source-Notes/01-overview.html)
 
 ## 2. 项目目标
 
