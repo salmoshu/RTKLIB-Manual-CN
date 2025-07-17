@@ -25,3 +25,5 @@ NTRIP（通过互联网协议传输RTCM的网络化传输）是一种用于交�
 通过点击工具栏中的MAP按钮，您可以使用谷歌地图打开NTRIP挂载点位置的地图视图。在地图视图中点击标记，可以显示挂载点的详细信息。通过在NTRIP浏览器窗口中选择一个挂载点，可以通过改变标记的颜色（红色）来在地图上指示该挂载点的位置。
 
 ![Map View of Station Positions by NTRIP Browser](https://i.ibb.co/X59hsj3/image.png)
+
+<GiscusTalk />

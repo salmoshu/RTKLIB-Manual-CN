@@ -82,3 +82,5 @@ RTKLIB支持的RINEX版本包括2.10、2.11、2.12、3.00、3.01和3.02，并带
 完成转换后，你可以通过点击 <span style="border: 1px solid black; padding: 3px;">Plot...</span> 按钮使用RTKPLOT查看观测数据图表。详细信息请参阅3.7节“绘制和查看解算结果及观测数据”。你还可以通过点击按钮 <span style="border: 1px solid black; padding: 3px;">📄</span> 使用文本查看器查看输出文件。
 
 点击 <span style="border: 1px solid black; padding: 3px;">Process...</span> 按钮，你可以执行RTKPOST应用来处理转换后的RINEX OBS/NAV文件。详细信息请参阅3.4节“使用RTKPOST进行后处理分析”。
+
+<GiscusTalk />

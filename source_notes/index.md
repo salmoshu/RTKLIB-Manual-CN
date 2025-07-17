@@ -2,17 +2,6 @@
 sidebarDepth: 2
 ---
 
-> 项目参考：[Navigation-Learning](https://github.com/LiZhengXiao99/Navigation-Learning)
-> - 直接拷贝了其中有关 RTKLIB 部分的描述；
-> - 重新组织了其文档结构，让文档格式更加标准化；
-> - 该项目内容较全，但其中部分内容还需要重述或补充说明。
-
-<!-- 备忘： -->
-<!-- > 推荐阅读：[不迷途导航程序员：RTKLIB 源码阅读笔记](https://mp.weixin.qq.com/s/2D3V0qDh6fwt_tZ0225znw)
-> 推荐视频：[Lewen_NavSense-多模卫星导航定位与应用](https://space.bilibili.com/479790048/channel/collectiondetail?sid=2487703)
-> 推荐视频：[GNSS高精度算法代码学习-RTKLIB篇](https://www.bilibili.com/video/BV1a6saeAEDz)
-> 推荐视频：[冰菓的RTKLIB&GAMP 北斗卫星定位不妙屋](https://space.bilibili.com/199461274/channel/collectiondetail?sid=1088015) -->
-
 ## RTKLIB：最知名的 GNSS 数据处理程序
 
 RTKLIB是一个用于全球导航卫星系统（GNSS）标准定位和精密定位的开源项目，由日本东京海洋大学的高须知二（Tomoji Takasu）开发。它由一个核心程序库和多个命令行程序与界面程序组成。RTKLIB具有以下特点：
@@ -144,3 +133,5 @@ RTKLIB包含以下GUI（图形用户界面）和CUI（命令行用户界面）�
     </tr>
  </tbody>
 </table>
+
+<GiscusTalk />

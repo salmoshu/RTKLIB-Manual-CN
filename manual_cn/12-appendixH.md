@@ -216,3 +216,5 @@ if (typeof window !== 'undefined') {
   <button id="H-1-1" class="H-1-1-button" onclick="convertNoToId()">转换为PRN</button>
   <input type="text" id="H-1-1-prn" class="H-1-1-input" disabled="disabled">
 </div>
+
+<GiscusTalk />

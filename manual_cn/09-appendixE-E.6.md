@@ -204,7 +204,7 @@ $\begin{align}
 ::: info 注意事项
 - $R_r$ 和 $F^s$ 需要带上平方（手册中没有很好地说明这一点）；
 - $\sin^2(El_r^s)$ 需要带上平方（原本手册与代码描述有误）；
-- 原本手册中没有给出 $\sigma_{snr}^2$，这部分可以参考 [RTKLIB-Source-Notes C.3节](/algorithm/RTKLIB-Source-Notes/16-appendixC-C.3.html)。
+- 原本手册中没有给出 $\sigma_{snr}^2$，这部分可以参考 [RTKLIB-Source-Notes C.3节](/algorithm/RTKLIB-Source-Notes/C-appendixC-C.3.html)。
 ::: 
 
 对于星历和钟差的标准差，RTKLIB中使用了URA（用户测距精度）或类似的指标。通过几次迭代，通常情况下解会收敛，并获得估计的接收机位置 $\hat{\mathbf{r}}_r$ 和接收机钟差 $\hat{d}t_r$ 。
@@ -306,3 +306,5 @@ GDOP < GDOP_{thres} \tag{E.6.34}
 其中 $n$ 是待估参数的数目， $m$ 是观测量的数目。$\chi_a^2(n)$ 是自由度 $n$ 和 $\alpha=0.001 (0.1\%)$ 的卡方分布。GDOP是几何精度因子（dilution of precision）。$GDOP_{thres}$ 可以在“Reject Threshold of GDOP”选项中进行相关配置。
 
 除了上述解的检验之外，RTKLIB在版本2.4.2中还增加了RAIM（接收机自主完好性监控）FDE（故障检测与排除）功能。如果启用了配置选项“RAIM FDE”，那么在式(E.6.33)中的卡方检验失败后，RTKLIB将通过逐个排除可见卫星来进行重新估计。在重新进行了所有尝试后，选择具有最小归一化平方残差 $\mathbf{v}^T\mathbf{v}$ 的估计位置作为最终解。在这种方案中，由于卫星故障、接收机故障或较严重的多路径所导致的无效观测值将被视为异常值并被剔除掉。请注意，此功能需要2颗冗余的可见卫星，这意味着至少需要6颗可见卫星才能获得最终解。
+
+<GiscusTalk />

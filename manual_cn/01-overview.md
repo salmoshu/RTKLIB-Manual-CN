@@ -135,3 +135,5 @@ RTKLIB包含以下GUI（图形用户界面）和CUI（命令行用户界面）�
     </tr>
  </tbody>
 </table>
+
+<GiscusTalk />

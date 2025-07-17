@@ -1,12 +1,10 @@
-# 1. 初识RTKLIB
-
 ## 1.2 基本使用
 
 ### 1.2.1 下载 RTKLIB
 
 以下为当前的版本汇总（截至2025年7月7日）：
 
-<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">表1-1 RTKLIB 主要版本汇总</p>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">表1.2-1 RTKLIB 主要版本汇总</p>
 
 |  版本  | 日期       | 可执行 Windows 版本   | 源码  | 备注 |
 |---------|------------|----------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|----------------------------------|
@@ -15,19 +13,19 @@
 | demo5-b34? | 持续更新 | [Github](https://github.com/rtklibexplorer/RTKLIB/releases) | [GitHub](https://github.com/rtklibexplorer/RTKLIB/releases) | 基于2.4.3，面向低成本接收机优化 |
 | rtklib-py | 2022/07/20 | - | [GitHub](https://github.com/rtklibexplorer/rtklib-py) | Python版本 |
 
-**建议下载demo5版本**，因为它继承了2.4.3版本的功能，但包含更多优化项，有更多值得学习的地方，并且它的主要框架与2.4.3相差不大。通过绿色按钮 **Code** 的下拉菜单，再点击 **Download ZIP** 可以下载目标文件：
+**建议下载 demo5 版本**，因为它继承了 2.4.3 版本的功能，但包含更多优化项，有更多值得学习的地方，并且它的主要框架与 2.4.3 相差不大。通过绿色按钮 **Code** 的下拉菜单，再点击 **Download ZIP** 可以下载目标文件：
 
 ![image-20231016092003733](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231016092003733.png)
-<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图1-3 RTKLIB 源码下载</p>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图1.2-1 RTKLIB 源码下载</p>
 
 解压两个压缩文件，得到的文件目录如下：
 
 ![image-20231026103732552](https://pic-bed-1316053657.cos.ap-nanjing.myqcloud.com/img/image-20231026103732552.png)
-<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图1-4 RTKLIB 文件目录</p>
+<p style="text-align: center; font-family: 'Microsoft YaHei', SimSun, Arial, sans-serif; font-size: 14px;">图1.2-2 RTKLIB 文件目录</p>
 
 **Source Programs and Data** 是程序的源文件，**Binary APs for Windows** 是编译好的 Windows 可执行文件，可以移至于 **Source Programs and Data** 的 bin 目录下以方便查找。对于经常使用的应用，例如用于原始数据和结果数据绘图的 **rtkplot** ，建议创建桌面快捷方式。
 
-### 1.2.2 基本使用
+### 1.2.2 使用方法
 
 **使用 RTKLIB 实现 GNSS 数据处理与定位解算**。如果你拥有自己的 GNSS 模块和天线，可以通过串口或网口将其连接到电脑或树莓派，然后将 RTKLIB 部署其中作为数据处理与定位解算的工具。以下是 RTKLIB 的主要功能和操作步骤：
 
@@ -45,7 +43,7 @@
 - **星历文件下载**：如果手头只有观测数据（伪距、载波相位、多普勒和C/N0），那么还需要下载星历文件。可以通过 RTKGET 自动下载，或手动从 IGS 网站（如 [武汉大学 IGS 中心](ftp://igs.gnsswhu.cn/pub/gps/)）获取。
 - **PPP 改正文件下载**：进行 PPP 解算时，需下载精密改正文件（如 IGS 提供的 SSR 数据）。
 
-> 星历的下载，笔者喜欢使用MGEX-AGNSS服务，可以参考[附录A.3](/algorithm/RTKLIB-Source-Notes/14-appendixA.html#a-3-mgex-agnss服务)。
+> 星历的下载，笔者喜欢使用MGEX-AGNSS服务，可以参考 [附录A.3](/algorithm/RTKLIB-Source-Notes/A-appendixA.html#a-3-mgex-agnss服务)。
 
 **4. 后处理分析**
 
@@ -55,7 +53,7 @@
 - **后处理解算工具**：
   - **RTKPOST**：图形界面程序，方便设置解算参数并导出配置文件，适合处理单个数据文件。
   - **RNX2RTKP**：命令行程序，适合批量处理。可通过配置文件设置解算参数，支持脚本自动化。
-  - **自定义后处理脚本**：如果希望同时运行多组配置或多组数据，可以编写自定义脚本，这里提供笔者编写的一个示例程序，具体参考[附录A.4](/algorithm/RTKLIB-Source-Notes/14-appendixA.html#a-4-批处理程序)。
+  - **自定义后处理脚本**：如果希望同时运行多组配置或多组数据，可以编写自定义脚本，这里提供笔者编写的一个示例程序，具体参考[附录A.4](/algorithm/RTKLIB-Source-Notes/A-appendixA.html#a-4-批处理程序)。
 - **输出文件分析**：
   - **结果文件（Solution）**：包含定位和速度结果，支持 NMEA 或 RTKLIB 自定义格式。
   - **解算中间结果文件（Solution Status）**：记录解算过程中的中间结果，如卫星残差、高度角、模糊度、对流层延迟等。
@@ -70,3 +68,5 @@
   - 如果解算失败，可将 Trace 级别设为 2，查看错误或警告信息，检查文件路径、数据格式或解算参数设置；
   - 如果是算法问题，可以先将 Trace 级别设为 3；
   - 如果结果精度不达标，可分析解算中间结果文件（Solution Status），通过 RTKPLOT 作图优化解算参数。
+
+<GiscusTalk />

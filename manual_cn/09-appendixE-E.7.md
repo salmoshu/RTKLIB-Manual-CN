@@ -413,3 +413,5 @@ $\begin{equation}
 \end{equation}$
 
 其中，$r_{baseline}$ 是给定的预设基线长度（单位：m），$\sigma_r$是基线长度的约束（单位：m）。为了应对非常短的基线长度情况下的非线性问题，可以通过将配置选项“Number of Filter Iteration”（滤波器迭代次数）设置为大于1，来支持扩展卡尔曼滤波器（EKF）的迭代量测更新。
+
+<GiscusTalk />

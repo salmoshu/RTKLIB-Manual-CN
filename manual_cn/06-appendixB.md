@@ -676,3 +676,5 @@ IGS_TEC ftp://cddis.gsfc.nasa.gov/gps/products/ionex/%Y/%n/igsg%n0.%yi.Z c:\prod
 IGR_TEC ftp://cddis.gsfc.nasa.gov/gps/products/ionex/%Y/%n/igrg%n0.%yi.Z c:\product\%W
 ...
 ```
+
+<GiscusTalk />

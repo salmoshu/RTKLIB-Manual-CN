@@ -117,3 +117,5 @@ nnnn(ss), nnnn(ss), nnnn(ss), ....
 通过点击 <span style="border: 1px solid black; padding: 3px;">...</span> 按钮，您可以通过“选项”对话框设置通信选项。如果要向连接到输入流的服务器发送 NMEA GPGGA 消息，请勾选“NMEA 请求周期”，并设置请求周期（单位为毫秒）以及消息中的纬度/经度。如果需要通过防火墙内的 HTTP 代理服务器连接外部 NTRIP Caster，您可以在“HTTP/NTRIP 代理”字段中以 `<address>：<port>` 的形式输入地址和端口号。对话框中的其他字段用于在使用格式转换功能以及发送天线信息消息时生成天线和基站信息消息。
 
 ![alt text](https://i.ibb.co/b1z0Kv9/image.png)
+
+<GiscusTalk />

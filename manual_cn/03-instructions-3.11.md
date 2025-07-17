@@ -18,3 +18,5 @@ RTKLIB包含了以下命令行界面（CUI）应用程序。这些CUI应用程�
 
 **STR2STRV**<br>
 数据流服务器。STRSVR的CUI版本。
+
+<GiscusTalk />

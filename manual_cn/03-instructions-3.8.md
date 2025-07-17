@@ -83,3 +83,5 @@ NORAD TLE数据文件可以在CelesTrak（<http://celestrack.com>）或SpaceTrac
 
 ![Skyplot (Predicted) by RTKPLOT](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250702-144110.jpg)
 <p style="text-align: center;">图3.8-11 Skyplot (Predicted)</p> 
+
+<GiscusTalk />

@@ -72,7 +72,7 @@ $\begin{flalign}
 d\phi_{r,i}^s = -d_{r,pco,i}^T e_{r,enu}^s + (E^s d_{pco,i}^s)^T e_r^s + d_{r,pcv,i}(El) + d_{pcv,i}^s(\theta) - d_{r,disp}^T e_{r,enu}^s + \lambda_i \phi_{pw} \tag{E.3.6}
 \end{flalign}$
 
-$N_{r,i}^s$ 通常被称为载波相位整数模糊度、载波整周模糊度或简称为模糊度。有关载波相位校正项的详细公式，请参考[附录 E.8](/algorithm/RTKLIB-Manual-CN/09-appendixE-E.8)。
+$N_{r,i}^s$ 通常被称为载波相位整数模糊度、载波整周模糊度或简称为模糊度。
 
 :::info GPS L1频段的载波波长是19cm，为什么通常说载波相位的测量精度是cm或mm级别？
 虽然 L1 载波的波长是 19 cm，但测量精度远高于波长，这是因为载波相位测量的精度取决于相位分辨能力，而不是波长本身。
@@ -151,3 +151,5 @@ $
 
 ![ Local Coordinates and Azimuth and Elevation Angles](https://raw.githubusercontent.com/salmoshu/Winchell-ImgBed/main/img/20250219-235235.jpg)
 <p style="text-align: center;">图E.3-4 局部坐标系与方位角和仰角</p>
+
+<GiscusTalk />

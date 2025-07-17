@@ -69,3 +69,5 @@ RTKLIB包含后处理分析软件 RTKPOST。RTKPOST能够输入标准的RINEX格
 ### 3.4.10 跟踪与调试
 
 如果想输出解算结果的统计信息或调试跟踪，请按主窗口左下角的 <span style="border: 1px solid black; padding: 3px;">📄</span> 按钮查看解决方案统计文件和调试跟踪文件。为了在结果异常的情况下检查处理异常或警告，需要将“Options”-“Output”对话框中的“Output Debug Trace”设置为“Level2”（跟踪错误和警告），并查看输出调试跟踪文件。
+
+<GiscusTalk />
